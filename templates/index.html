@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>化療血液檢驗追蹤</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  {% raw %}
+  <div id="app" v-cloak>
+    <header class="topbar">
+      <div class="brand">
+        <span class="pulse"></span>
+        <div>
+          <h1>化療血液檢驗追蹤</h1>
+          <p>逐次化療對照，看見恢復的軌跡</p>
+        </div>
+      </div>
+      <div class="patient-picker">
+        <select v-model="currentPatientId" @change="onPatientChange">
+          <option :value="null" disabled>選擇病人…</option>
+          <option v-for="p in patients" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+        <button class="ghost" @click="showAddPatient = !showAddPatient">＋ 新增病人</button>
+        <button class="ghost danger-ghost" v-if="currentPatientId" @click="deletePatient">刪除病人</button>
+      </div>
+    </header>
+
+    <div v-if="showAddPatient" class="newpatient card">
+      <input v-model="newPatient.name" placeholder="病人姓名 / 代號" @keyup.enter="addPatient" />
+      <input v-model="newPatient.note" placeholder="備註（選填）" />
+      <button class="primary" @click="addPatient">建立</button>
+    </div>
+
+    <main class="layout">
+      <!-- 左：輸入表單 -->
+      <section class="card form-card">
+        <h2>輸入檢驗報告</h2>
+        <p class="hint">選病人與化療次數，開始日會自動帶出，只要再填抽血日期與數值。</p>
+
+        <label>病人</label>
+        <select v-model="currentPatientId" @change="onPatientChange">
+          <option :value="null" disabled>選擇病人…</option>
+          <option v-for="p in patients" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+
+        <label>化療次數</label>
+        <select v-model="form.cycleSel" @change="applyCycleSelection" :disabled="!currentPatientId">
+          <option v-for="c in cycleOptions" :key="c.cycle_number" :value="c.cycle_number">
+            第{{ c.cycle_number }}次（{{ c.start_date }} 起）
+          </option>
+          <option value="new">＋ 新的化療次數…</option>
+        </select>
+
+        <template v-if="form.cycleSel === 'new'">
+          <label>新的化療次數（第 N 次）</label>
+          <input type="number" min="1" v-model.number="form.newCycleNumber" placeholder="例如 1" />
+          <label>該次化療開始日期（第一天）</label>
+          <input type="date" v-model="form.cycle_start_date" />
+        </template>
+        <div v-else class="auto-start">
+          該次化療開始日：<strong>{{ form.cycle_start_date || '—' }}</strong><span>（自動帶入）</span>
+        </div>
+
+        <label>抽血日期</label>
+        <input type="date" v-model="form.record_date" />
+
+        <div class="grid2">
+          <div>
+            <label>WBC 白血球 <small>{{ units.wbc }}</small></label>
+            <input type="number" step="0.01" v-model="form.wbc" placeholder="例 6.5" />
+          </div>
+          <div>
+            <label>Hb 血色素 <small>{{ units.hb }}</small></label>
+            <input type="number" step="0.1" v-model="form.hb" placeholder="例 13.2" />
+          </div>
+          <div>
+            <label>PLT 血小板 <small>{{ units.plt }}</small></label>
+            <input type="number" step="1" v-model="form.plt" placeholder="例 220" />
+          </div>
+          <div>
+            <label>ANC 中性球 <small>{{ units.anc }}</small></label>
+            <input type="number" step="1" v-model="form.anc" placeholder="例 3200" />
+          </div>
+        </div>
+
+        <div class="tx-check">
+          <span class="tx-check-title">當天處置（有才勾）</span>
+          <label class="chk"><input type="checkbox" v-model="form.wbc_shot" /> 💉 升白針</label>
+          <label class="chk"><input type="checkbox" v-model="form.rbc_tx" /> 🩸 輸血</label>
+          <label class="chk"><input type="checkbox" v-model="form.plt_tx" /> 🟣 輸血小板</label>
+        </div>
+
+        <button class="primary block" :disabled="!canSubmit" @click="submitRecord">
+          儲存這筆
+        </button>
+        <p v-if="msg" class="msg" :class="msg.type">{{ msg.text }}</p>
+      </section>
+
+      <!-- 左下：化療週期開始日 -->
+      <section class="card cycle-card" v-if="currentPatientId && cycles.length">
+        <h2>化療週期開始日</h2>
+        <p class="hint">改了開始日，該療程每天的「Day」會自動重算。</p>
+        <div v-for="c in cycles" :key="c.cycle_id" class="cycle-row">
+          <span class="cyc-label">第{{ c.cycle_number }}次</span>
+          <input type="date" v-model="c.start_date" />
+          <button class="mini primary" @click="saveCycleStart(c)">儲存</button>
+          <button class="mini del" @click="deleteCycle(c)">刪除</button>
+        </div>
+        <p v-if="cycleMsg" class="msg ok">{{ cycleMsg }}</p>
+      </section>
+
+      <!-- 右：圖表 + 比對 -->
+      <section class="charts">
+        <div v-if="!currentPatientId" class="empty card">
+          請先在右上角選擇或新增一位病人。
+        </div>
+
+        <template v-else>
+          <div class="toolbar">
+            <button class="ghost" @click="openSettings">⚙ 參考值設定</button>
+            <label class="tb-field">醫院 <input v-model="hospital" placeholder="醫院名稱" @blur="saveHeaderInfo" /></label>
+            <label class="tb-field">製表人 <input v-model="preparer" placeholder="姓名" @blur="saveHeaderInfo" /></label>
+            <label class="tb-field">表單日期 <input type="date" v-model="reportDate" /></label>
+            <span class="tb-spacer"></span>
+            <button class="dl-btn" v-if="cycles.length" :disabled="exporting" @click="exportImage">⤓ 下載圖片</button>
+            <button class="dl-btn" v-if="cycles.length" :disabled="exporting" @click="exportPDF">⤓ 下載 PDF</button>
+          </div>
+
+          <div ref="capture" class="capture-area">
+          <div class="export-head" v-if="cycles.length">
+            <div class="eh-line1">
+              <strong>{{ currentPatientName }}</strong>
+              <span v-if="hospital" class="eh-hosp">{{ hospital }}</span>
+              　化療血液檢驗追蹤
+            </div>
+            <div class="eh-line2">
+              <span>製表人：{{ preparer || '—' }}</span>
+              <span>表單日期：{{ reportDate || today }}</span>
+            </div>
+          </div>
+
+          <div class="card summary" v-if="cycles.length">
+            <h2>進步比對</h2>
+            <p class="hint">「最低點」越接近正常區間、「恢復天數」越短，代表這個療程恢復得越好。</p>
+            <div class="summary-grid">
+              <div v-for="m in metrics" :key="m.key" class="metric-pill">
+                <div class="metric-name">{{ m.label }}</div>
+                <div class="trend-row">
+                  <span class="tlabel">最低點</span>
+                  <span class="trend" :class="trendClass(m.key)">
+                    <span class="arrow">{{ trendArrow(m.key) }}</span>{{ trendText(m.key) }}
+                  </span>
+                </div>
+                <div class="trend-row">
+                  <span class="tlabel">恢復天數</span>
+                  <span class="trend" :class="recoveryClass(m.key)">{{ recoveryText(m.key) }}</span>
+                </div>
+              </div>
+            </div>
+            <p class="recov-note">恢復天數 = 從該療程最低點，回到正常參考下限（{{ recoveryThresholds }}）所經過的天數。</p>
+
+            <div class="tx-stats" v-if="hasAnyTreatment">
+              <h3>處置統計（每個療程）</h3>
+              <table class="tx-stats-table">
+                <thead>
+                  <tr><th>療程</th><th>💉 升白針</th><th>🩸 輸血</th><th>🟣 輸血小板</th></tr>
+                </thead>
+                <tbody>
+                  <tr v-for="s in cycleTreatmentStats" :key="s.cycle_number">
+                    <td>第{{ s.cycle_number }}次</td>
+                    <td>{{ s.wbc_shot }} 次<span v-if="s.d" class="txd" :class="txdClass(s.d.wbc_shot)">{{ txdText(s.d.wbc_shot) }}</span></td>
+                    <td>{{ s.rbc_tx }} 次<span v-if="s.d" class="txd" :class="txdClass(s.d.rbc_tx)">{{ txdText(s.d.rbc_tx) }}</span></td>
+                    <td>{{ s.plt_tx }} 次<span v-if="s.d" class="txd" :class="txdClass(s.d.plt_tx)">{{ txdText(s.d.plt_tx) }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="recov-note">箭頭為與前一次療程相比：▼ 變少（較好）、▲ 變多。同樣的化療，後面療程處置變少，通常代表身體耐受與恢復變好。</p>
+            </div>
+          </div>
+
+          <div v-for="m in metrics" :key="m.key" class="card chart-card">
+            <div class="chart-head">
+              <h3>{{ m.label }} <small>{{ units[m.key] }}</small></h3>
+              <span class="ref">正常參考：{{ refText(m) }}</span>
+            </div>
+            <canvas :id="'chart-' + m.key" height="150"></canvas>
+            <p class="marker-legend">
+              <span class="mk-nadir"></span>空心圈＝最低點
+              <span class="mk-rec"></span>三角＝恢復點（回到參考下限）
+              <span v-if="treatments[m.key]" class="mk-tx">{{ treatments[m.key].icon }} ＝當天{{ treatments[m.key].name }}</span>
+            </p>
+          </div>
+
+          <div class="card table-card" v-if="flatRecords.length">
+            <h3>原始資料</h3>
+            <table>
+              <thead>
+                <tr><th>次</th><th>Day</th><th>日期</th><th>WBC</th><th>Hb</th><th>PLT</th><th>ANC</th><th>處置</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="r in flatRecords" :key="r.id" :class="{ editing: editingId === r.id }">
+                  <td>第{{ r.cycle_number }}次</td>
+                  <td>D{{ r.day }}</td>
+                  <!-- 檢視模式 -->
+                  <template v-if="editingId !== r.id">
+                    <td>{{ r.record_date }}</td>
+                    <td>{{ fmt(r.wbc) }}</td>
+                    <td>{{ fmt(r.hb) }}</td>
+                    <td>{{ fmt(r.plt) }}</td>
+                    <td>{{ fmt(r.anc) }}</td>
+                    <td class="tx-icons">
+                      <span v-if="r.wbc_shot" title="升白針">💉</span>
+                      <span v-if="r.rbc_tx" title="輸血">🩸</span>
+                      <span v-if="r.plt_tx" title="輸血小板">🟣</span>
+                      <span v-if="!r.wbc_shot && !r.rbc_tx && !r.plt_tx" class="muted">–</span>
+                    </td>
+                    <td class="row-actions">
+                      <button class="mini" @click="startEdit(r)">編輯</button>
+                      <button class="mini del" @click="deleteRecord(r.id)">刪</button>
+                    </td>
+                  </template>
+                  <!-- 編輯模式 -->
+                  <template v-else>
+                    <td><input class="cell" type="date" v-model="editForm.record_date" /></td>
+                    <td><input class="cell" type="number" step="0.01" v-model="editForm.wbc" /></td>
+                    <td><input class="cell" type="number" step="0.1" v-model="editForm.hb" /></td>
+                    <td><input class="cell" type="number" step="1" v-model="editForm.plt" /></td>
+                    <td><input class="cell" type="number" step="1" v-model="editForm.anc" /></td>
+                    <td class="tx-edit">
+                      <label title="升白針"><input type="checkbox" v-model="editForm.wbc_shot" />💉</label>
+                      <label title="輸血"><input type="checkbox" v-model="editForm.rbc_tx" />🩸</label>
+                      <label title="輸血小板"><input type="checkbox" v-model="editForm.plt_tx" />🟣</label>
+                    </td>
+                    <td class="row-actions">
+                      <button class="mini primary" @click="saveEdit">儲存</button>
+                      <button class="mini" @click="cancelEdit">取消</button>
+                    </td>
+                  </template>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          </div><!-- /capture-area -->
+        </template>
+
+        <!-- 參考值設定面板 -->
+        <div v-if="showSettings" class="modal-backdrop" @click.self="showSettings = false">
+          <div class="modal card">
+            <h2>參考值設定</h2>
+            <p class="hint">設定每個項目的正常區間（下限／上限）。恢復天數、圖表綠帶與標記都會依此更新。此設定只套用在目前這位病人。</p>
+            <div class="set-row">
+              <span class="set-label">白血球 WBC</span>
+              <input type="number" step="0.1" v-model.number="settingsForm.wbc_min" /> <span class="dash">–</span>
+              <input type="number" step="0.1" v-model.number="settingsForm.wbc_max" />
+              <select class="set-unit-sel" v-model="settingsForm.wbc_unit">
+                <option v-for="u in unitOptions.wbc" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <span class="set-label">血色素 Hb</span>
+              <input type="number" step="0.1" v-model.number="settingsForm.hb_min" /> <span class="dash">–</span>
+              <input type="number" step="0.1" v-model.number="settingsForm.hb_max" />
+              <select class="set-unit-sel" v-model="settingsForm.hb_unit">
+                <option v-for="u in unitOptions.hb" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <span class="set-label">血小板 PLT</span>
+              <input type="number" step="1" v-model.number="settingsForm.plt_min" /> <span class="dash">–</span>
+              <input type="number" step="1" v-model.number="settingsForm.plt_max" />
+              <select class="set-unit-sel" v-model="settingsForm.plt_unit">
+                <option v-for="u in unitOptions.plt" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <span class="set-label">中性球 ANC</span>
+              <input type="number" step="1" v-model.number="settingsForm.anc_min" />
+              <span class="set-sub">下限</span>
+              <input type="number" step="1" v-model.number="settingsForm.anc_danger" />
+              <select class="set-unit-sel" v-model="settingsForm.anc_unit">
+                <option v-for="u in unitOptions.anc" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <p class="hint" style="margin-top:12px">單位只改顯示標籤，不會換算數值；請讓選的單位與你輸入的數值、設定的參考值一致。</p>
+
+            <h3 style="margin:18px 0 2px">處置參考線</h3>
+            <p class="hint">低於此值常需處置，會在對應圖上畫一條橘色虛線。留空＝不顯示。</p>
+            <div class="set-row">
+              <span class="set-label">💉 升白針</span>
+              <input type="number" step="1" v-model.number="settingsForm.wbc_shot_line" placeholder="留空不顯示" />
+              <span class="set-sub">WBC 低於</span>
+            </div>
+            <div class="set-row">
+              <span class="set-label">🩸 輸血</span>
+              <input type="number" step="0.1" v-model.number="settingsForm.hb_tx_line" />
+              <span class="set-sub">Hb 低於</span>
+            </div>
+            <div class="set-row">
+              <span class="set-label">🟣 輸血小板</span>
+              <input type="number" step="0.1" v-model.number="settingsForm.plt_tx_line" />
+              <span class="set-sub">PLT 低於</span>
+            </div>
+            <div class="modal-actions">
+              <button class="primary" @click="saveSettings">儲存</button>
+              <button class="ghost" @click="showSettings = false">取消</button>
+              <span class="tb-spacer"></span>
+              <button class="mini" @click="resetSettings">回復預設</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      本工具僅供照護者紀錄與趨勢觀察，不能取代醫療判斷，用藥與處置請依醫療團隊指示。
+    </footer>
+  </div>
+  {% endraw %}
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>化療血液檢驗追蹤 — 操作說明</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1f2a37;--muted:#5b6573;--line:#e2e7ea;--teal:#0d9488;--teal-d:#0f766e;--good:#16a34a;--bad:#dc2626;--amber:#d97706;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans TC",system-ui,sans-serif;color:var(--ink);background:#eef1f2;line-height:1.5;}
+.page{width:210mm;min-height:297mm;margin:0 auto;background:#fff;padding:14mm 14mm 10mm;}
+h1{font-size:21pt;font-weight:900;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:10.5pt;margin-top:1mm}
+.top{display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--teal);padding-bottom:4mm;margin-bottom:5mm}
+.dot{width:16px;height:16px;border-radius:50%;background:var(--teal);flex:none}
+h2{font-size:13pt;font-weight:900;color:var(--teal-d);margin-bottom:3mm;display:flex;align-items:center;gap:6px}
+h2 .bar{width:5px;height:16px;background:var(--teal);border-radius:3px;display:inline-block}
+
+/* 6 步 */
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:3mm 6mm;margin-bottom:5mm}
+.step{display:flex;gap:9px;align-items:flex-start}
+.num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font-weight:900;font-size:12pt;display:flex;align-items:center;justify-content:center}
+.step .t{font-weight:700;font-size:11.5pt}
+.step .d{font-size:10pt;color:var(--muted)}
+.tag{display:inline-block;background:#f0fdfa;border:1px solid #cfeae6;border-radius:5px;padding:0 5px;font-size:9.5pt;color:var(--teal-d);font-weight:700}
+
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:6mm}
+.box{border:1px solid var(--line);border-radius:10px;padding:4mm 4.5mm;margin-bottom:4mm}
+ul{list-style:none}
+li{font-size:10pt;padding:1.3mm 0;display:flex;gap:7px;align-items:flex-start}
+li b{font-weight:700}
+.k{flex:none;width:18px;text-align:center;font-weight:900}
+.legend li{align-items:center}
+.sw{flex:none;width:26px;height:13px;border-radius:3px;display:inline-block}
+.ring{flex:none;width:13px;height:13px;border-radius:50%;background:#fff;border:2.5px solid var(--muted);margin:0 6px 0 6px}
+.tri{flex:none;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid var(--muted);margin:0 6px}
+.arrow-good{color:var(--good);font-weight:900}
+.arrow-bad{color:var(--bad);font-weight:900}
+
+.foot{margin-top:4mm;border-top:1px solid var(--line);padding-top:3mm;font-size:9pt;color:var(--muted);text-align:center}
+.hl{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:3mm 4mm;font-size:9.5pt;color:#92400e;margin-top:1mm}
+
+@media print{
+  body{background:#fff}
+  .page{width:auto;min-height:auto;margin:0;padding:12mm}
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <span class="dot"></span>
+    <div>
+      <h1>化療血液檢驗追蹤 ・ 操作說明</h1>
+      <div class="sub">逐次化療對照，看見恢復的軌跡　|　每天抽血後輸入一次即可</div>
+    </div>
+  </div>
+
+  <h2><span class="bar"></span>每次輸入：6 個步驟</h2>
+  <div class="steps">
+    <div class="step"><span class="num">1</span><div><div class="t">選病人</div><div class="d">在「病人」下拉選名字。</div></div></div>
+    <div class="step"><span class="num">2</span><div><div class="t">選化療次數</div><div class="d">下拉選第幾次，<span class="tag">開始日自動帶出</span>不用填。</div></div></div>
+    <div class="step"><span class="num">3</span><div><div class="t">抽血日期</div><div class="d">已自動帶今天；補登別天再點開改。</div></div></div>
+    <div class="step"><span class="num">4</span><div><div class="t">填四項數值</div><div class="d">WBC、Hb、PLT、ANC；沒有的留空就好。</div></div></div>
+    <div class="step"><span class="num">5</span><div><div class="t">當天處置打勾</div><div class="d">有才勾：💉升白針　🩸輸血　🟣輸血小板。</div></div></div>
+    <div class="step"><span class="num">6</span><div><div class="t">按「儲存這筆」</div><div class="d">圖表和比對會自動更新。</div></div></div>
+  </div>
+  <div class="hl">💡 第一次的新療程：化療次數選「<b>＋ 新的化療次數…</b>」，填一次編號和開始日；之後就會出現在下拉，自動帶開始日。</div>
+
+  <div class="cols" style="margin-top:5mm">
+    <div>
+      <h2><span class="bar"></span>看圖：怎麼看有沒有進步</h2>
+      <div class="box legend">
+        <ul>
+          <li><span class="sw" style="background:rgba(16,185,129,.18)"></span><b>綠色帶</b>＝正常範圍</li>
+          <li><span class="sw" style="background:repeating-linear-gradient(90deg,#d97706 0 6px,#fff 6px 9px);height:3px"></span><b>橘色虛線</b>＝處置參考線（如輸血、升白）</li>
+          <li><span class="sw" style="background:var(--bad);height:3px"></span><b>紅線</b>＝ANC 高風險</li>
+          <li><span class="ring"></span><b>空心圈</b>＝最低點</li>
+          <li><span class="tri"></span><b>三角</b>＝恢復點（回到正常）</li>
+          <li><span class="k">💉🩸🟣</span>＝當天有處置</li>
+        </ul>
+      </div>
+      <div class="box">
+        <b style="font-size:10.5pt">進步比對三指標</b>
+        <ul style="margin-top:1.5mm">
+          <li><span class="k">·</span><b>最低點</b>：越高越好</li>
+          <li><span class="k">·</span><b>恢復天數</b>：從最低點回到正常要幾天，越短越好</li>
+          <li><span class="k">·</span><b>處置次數</b>：<span class="arrow-good">▼</span> 變少＝較好、<span class="arrow-bad">▲</span> 變多</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <h2><span class="bar"></span>修改 / 刪除</h2>
+      <div class="box">
+        <ul>
+          <li><span class="k">✏️</span><b>改某一天</b>：右側「原始資料」表，那一列按<b>編輯</b>→改→<b>儲存</b>。</li>
+          <li><span class="k">🗑️</span><b>刪某一天</b>：那一列按<b>刪</b>。</li>
+          <li><span class="k">📅</span><b>改/刪整個療程</b>：左邊「化療週期開始日」卡片，改日期按<b>儲存</b>、或按<b>刪除</b>。</li>
+        </ul>
+      </div>
+
+      <h2><span class="bar"></span>列印 / 給醫師看</h2>
+      <div class="box">
+        <ul>
+          <li><span class="k">①</span>上方填好<b>醫院、製表人、表單日期</b>。</li>
+          <li><span class="k">②</span>按<b>下載 PDF</b> 或 <b>下載圖片</b>。</li>
+          <li><span class="k">③</span>檔案含圖表、比對、處置標記與頁碼，可直接列印帶去回診。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    本工具僅供照護者紀錄與趨勢觀察，<b>不能取代醫療判斷</b>，用藥與處置請依醫療團隊指示。
+  </div>
+
+</div>
+</body>
+</html>
