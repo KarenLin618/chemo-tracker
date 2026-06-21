@@ -47,7 +47,7 @@ body {
   70% { box-shadow: 0 0 0 10px rgba(13,148,136,0); }
   100% { box-shadow: 0 0 0 0 rgba(13,148,136,0); }
 }
-.patient-picker { display: flex; gap: 10px; align-items: center; }
+.patient-picker { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
 /* ---- Inputs / buttons ---- */
 select, input {
@@ -231,7 +231,7 @@ tr.editing { background: #f0fdfa; }
 .foot { text-align: center; color: var(--muted); font-size: .78rem; padding: 20px; }
 
 /* ---- Toolbar ---- */
-.toolbar { display: flex; align-items: center; gap: 8px; }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tb-spacer { flex: 1; }
 
 /* ---- Capture / export ---- */
@@ -259,3 +259,26 @@ tr.editing { background: #f0fdfa; }
 .set-unit, .set-sub { font-size: .76rem; color: var(--muted); }
 .set-unit-sel { width: auto; min-width: 78px; padding: 5px 8px; font-size: .8rem; }
 .modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+
+/* ---- 手機直式：避免內容把頁面撐寬，按鈕排到下拉下面 ---- */
+@media (max-width: 600px) {
+  body { overflow-x: hidden; }
+  .topbar { padding: 14px 16px; gap: 12px; }
+  .brand h1 { font-size: 1.1rem; }
+
+  /* 病人選單佔整行，新增/刪除排到下面各佔一半 */
+  .patient-picker { width: 100%; }
+  .patient-picker select { flex: 1 0 100%; width: 100%; min-width: 0; }
+  .patient-picker button { flex: 1; }
+
+  .newpatient { flex-wrap: wrap; margin: 0 16px; }
+  .newpatient input { flex: 1 0 100%; }
+  .newpatient button { flex: 1; }
+
+  .layout { padding: 16px; }
+
+  /* 工具列欄位整行，下載鈕並排 */
+  .tb-field { width: 100%; }
+  .tb-field input { flex: 1; min-width: 0; }
+  .dl-btn { flex: 1; }
+}
