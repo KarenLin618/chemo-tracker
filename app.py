@@ -24,7 +24,15 @@ def create_app():
     if db_url:
         app.config["SQLALCHEMY_DATABASE_URI"] = normalize_db_url(db_url)
     else:
-        # 本機開發後備
+        # 防呆：部署環境（Railway 會注入 PORT）卻沒有 DATABASE_URL 時，
+        # 直接拒絕啟動。否則會悄悄退回容器內 SQLite，部署重啟就清空＝掉資料。
+        if os.environ.get("PORT"):
+            raise RuntimeError(
+                "偵測到部署環境（有 PORT）但沒有設定 DATABASE_URL。"
+                "請在服務的 Variables 加上 DATABASE_URL=${{Postgres.DATABASE_URL}}"
+                "（連到 PostgreSQL），避免資料寫進容器內 SQLite 而於重新部署時遺失。"
+            )
+        # 純本機開發後備（沒有 PORT 才走這裡）
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///local.db"
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
