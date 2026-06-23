@@ -81,12 +81,24 @@ button:active { transform: translateY(1px); }
 .tx-check-title { width: 100%; font-size: .9rem; font-weight: 600; color: #374151; }
 .chk { display: flex; align-items: center; gap: 6px; font-size: 1.05rem; cursor: pointer; }
 .chk input { width: 20px; height: 20px; }
+/* IgG 整行輸入欄 */
+.igg-label { display: block; }
+/* IVIg 處置：含瓶數數字欄 */
+.ivig-chk { flex: 1 0 100%; flex-wrap: wrap; }
+.ivig-input { width: 70px; height: auto; padding: 6px 8px; font-size: 1rem; text-align: center; }
+.ivig-g { font-size: .92rem; color: var(--teal-dark); font-weight: 600; }
 .tx-icons { white-space: nowrap; font-size: 1rem; }
 .tx-icons .muted { color: var(--muted); }
-.tx-edit { display: flex; gap: 6px; white-space: nowrap; }
+.tx-icons span + span { margin-left: 6px; }
+.tx-edit { display: flex; gap: 6px; white-space: nowrap; flex-wrap: wrap; }
 .tx-edit label { display: inline-flex; align-items: center; gap: 2px; font-size: .95rem; cursor: pointer; }
-.tx-edit input { width: 16px; height: 16px; }
-.mk-tx { margin-left: 8px; }
+.tx-edit input[type="checkbox"] { width: 16px; height: 16px; }
+.tx-edit .ivig-cell { width: 50px; }
+.mk-tx { margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; }
+.mk-tx-ring {
+  display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+  background: transparent; border: 2.5px solid var(--muted);
+}
 
 /* ---- Layout ---- */
 .layout {
@@ -251,14 +263,30 @@ tr.editing { background: #f0fdfa; }
   position: fixed; inset: 0; background: rgba(15, 23, 32, .45);
   display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
 }
-.modal { width: 100%; max-width: 440px; }
-.set-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.modal { width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
+.set-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .set-label { flex: 0 0 92px; font-size: .85rem; font-weight: 500; }
 .set-row input { width: 90px; }
 .set-row .dash { color: var(--muted); }
 .set-unit, .set-sub { font-size: .76rem; color: var(--muted); }
 .set-unit-sel { width: auto; min-width: 78px; padding: 5px 8px; font-size: .8rem; }
+/* 圖表顯示開關列 */
+.disp-row { display: flex; align-items: center; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+.disp-chk { display: inline-flex; align-items: center; gap: 5px; font-size: .82rem; cursor: pointer; }
+.disp-chk input { width: 16px; height: 16px; }
 .modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+
+/* ---- 平板（直式 iPad 約 768–880px）：版面已單欄，微調間距與圖表高度 ---- */
+@media (max-width: 880px) {
+  .layout { padding: 18px; }
+  /* 單欄後表單不需 380px 窄欄感，輸入區更好按 */
+  .chart-card canvas { max-height: 260px; }
+}
+@media (min-width: 601px) and (max-width: 880px) {
+  /* 平板：四項血液數值維持兩欄，但工具列換行更從容 */
+  .toolbar { gap: 10px; }
+  .tb-field input { min-width: 120px; }
+}
 
 /* ---- 手機直式：避免內容把頁面撐寬，按鈕排到下拉下面 ---- */
 @media (max-width: 600px) {
@@ -281,4 +309,17 @@ tr.editing { background: #f0fdfa; }
   .tb-field { width: 100%; }
   .tb-field input { flex: 1; min-width: 0; }
   .dl-btn { flex: 1; }
+
+  /* 原始資料表：欄位多（含 IgG），縮字級、可橫向捲動 */
+  .table-card table { font-size: .8rem; }
+  .table-card th, .table-card td { padding: 6px 7px; }
+  .chart-card canvas { max-height: 230px; }
+}
+
+/* ---- 很小的手機（≤420px）：參考值設定欄位避免擠壓 ---- */
+@media (max-width: 420px) {
+  .set-label { flex: 0 0 100%; margin-bottom: 2px; }
+  .set-row input { width: 78px; }
+  .set-unit-sel { min-width: 70px; }
+  .modal { padding: 16px; }
 }

@@ -114,12 +114,15 @@ def register_routes(app):
         p.plt_max = pick("plt_max", p.plt_max)
         p.anc_min = pick("anc_min", p.anc_min)
         p.anc_danger = pick("anc_danger", p.anc_danger)
+        p.igg_min = pick("igg_min", p.igg_min)
+        p.igg_max = pick("igg_max", p.igg_max)
 
         # 單位（字串，僅標籤）
         p.wbc_unit = data.get("wbc_unit") or p.wbc_unit
         p.hb_unit = data.get("hb_unit") or p.hb_unit
         p.plt_unit = data.get("plt_unit") or p.plt_unit
         p.anc_unit = data.get("anc_unit") or p.anc_unit
+        p.igg_unit = data.get("igg_unit") or p.igg_unit
 
         # 處置參考線（允許清空 = null）
         if "wbc_shot_line" in data:
@@ -128,6 +131,13 @@ def register_routes(app):
             p.hb_tx_line = to_float(data.get("hb_tx_line"))
         if "plt_tx_line" in data:
             p.plt_tx_line = to_float(data.get("plt_tx_line"))
+
+        # 各項目圖表顯示開關（布林，逐欄寫入）
+        for key in ("wbc", "hb", "plt", "anc", "igg"):
+            for opt in ("show_points", "tx_as_text"):
+                field = f"{key}_{opt}"
+                if field in data:
+                    setattr(p, field, bool(data.get(field)))
         db.session.commit()
         return jsonify(p.to_dict())
 
@@ -211,9 +221,11 @@ def register_routes(app):
             hb=to_float(data.get("hb")),
             plt=to_float(data.get("plt")),
             anc=to_float(data.get("anc")),
+            igg=to_float(data.get("igg")),
             wbc_shot=bool(data.get("wbc_shot")),
             rbc_tx=bool(data.get("rbc_tx")),
             plt_tx=bool(data.get("plt_tx")),
+            ivig_bottles=to_float(data.get("ivig_bottles")),
         )
         db.session.add(rec)
         db.session.commit()
@@ -233,9 +245,11 @@ def register_routes(app):
         rec.hb = to_float(data.get("hb"))
         rec.plt = to_float(data.get("plt"))
         rec.anc = to_float(data.get("anc"))
+        rec.igg = to_float(data.get("igg"))
         rec.wbc_shot = bool(data.get("wbc_shot"))
         rec.rbc_tx = bool(data.get("rbc_tx"))
         rec.plt_tx = bool(data.get("plt_tx"))
+        rec.ivig_bottles = to_float(data.get("ivig_bottles"))
         db.session.commit()
         return jsonify(rec.to_dict())
 

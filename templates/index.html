@@ -88,11 +88,19 @@
           </div>
         </div>
 
+        <label class="igg-label">IgG 免疫球蛋白 <small>{{ units.igg }}（不是每次都驗，沒驗就留空）</small></label>
+        <input type="number" step="1" v-model="form.igg" placeholder="例 1050（沒驗就留空）" />
+
         <div class="tx-check">
           <span class="tx-check-title">當天處置（有才勾）</span>
           <label class="chk"><input type="checkbox" v-model="form.wbc_shot" /> 💉 升白針</label>
           <label class="chk"><input type="checkbox" v-model="form.rbc_tx" /> 🩸 輸血</label>
           <label class="chk"><input type="checkbox" v-model="form.plt_tx" /> 🟣 輸血小板</label>
+          <label class="chk ivig-chk">
+            🧫 免疫球蛋白 IVIg
+            <input type="number" step="0.5" min="0" class="ivig-input" v-model.number="form.ivig_bottles" placeholder="瓶" />
+            <span class="ivig-g">= {{ (form.ivig_bottles || 0) * 5 }} g</span>
+          </label>
         </div>
 
         <button class="primary block" :disabled="!canSubmit" @click="submitRecord">
@@ -168,7 +176,7 @@
               <h3>處置統計（每個療程）</h3>
               <table class="tx-stats-table">
                 <thead>
-                  <tr><th>療程</th><th>💉 升白針</th><th>🩸 輸血</th><th>🟣 輸血小板</th></tr>
+                  <tr><th>療程</th><th>💉 升白針</th><th>🩸 輸血</th><th>🟣 輸血小板</th><th>🧫 IVIg</th></tr>
                 </thead>
                 <tbody>
                   <tr v-for="s in cycleTreatmentStats" :key="s.cycle_number">
@@ -176,6 +184,7 @@
                     <td>{{ s.wbc_shot }} 次<span v-if="s.d" class="txd" :class="txdClass(s.d.wbc_shot)">{{ txdText(s.d.wbc_shot) }}</span></td>
                     <td>{{ s.rbc_tx }} 次<span v-if="s.d" class="txd" :class="txdClass(s.d.rbc_tx)">{{ txdText(s.d.rbc_tx) }}</span></td>
                     <td>{{ s.plt_tx }} 次<span v-if="s.d" class="txd" :class="txdClass(s.d.plt_tx)">{{ txdText(s.d.plt_tx) }}</span></td>
+                    <td>{{ s.ivig }} 次<small v-if="s.ivigG"> ({{ s.ivigG }}g)</small><span v-if="s.d" class="txd" :class="txdClass(s.d.ivig)">{{ txdText(s.d.ivig) }}</span></td>
                   </tr>
                 </tbody>
               </table>
@@ -190,9 +199,16 @@
             </div>
             <canvas :id="'chart-' + m.key" height="150"></canvas>
             <p class="marker-legend">
-              <span class="mk-nadir"></span>空心圈＝最低點
-              <span class="mk-rec"></span>三角＝恢復點（回到參考下限）
-              <span v-if="treatments[m.key]" class="mk-tx">{{ treatments[m.key].icon }} ＝當天{{ treatments[m.key].name }}</span>
+              <template v-if="displayOpts[m.key].show_points">
+                <span class="mk-nadir"></span>空心圈＝最低點
+                <span class="mk-rec"></span>三角＝恢復點（回到參考下限）
+              </template>
+              <span v-else>此項以直線顯示（未開圓點）</span>
+              <span v-if="treatments[m.key] || ivig.chartKey === m.key" class="mk-tx">
+                <template v-if="!displayOpts[m.key].tx_as_text"><span class="mk-tx-ring"></span>圓圈＝</template>
+                <template v-else>標籤＝</template>
+                當天<template v-if="treatments[m.key]">{{ treatments[m.key].name }}</template><template v-if="ivig.chartKey === m.key">{{ treatments[m.key] ? '／' : '' }}IVIg</template>
+              </span>
             </p>
           </div>
 
@@ -200,7 +216,7 @@
             <h3>原始資料</h3>
             <table>
               <thead>
-                <tr><th>次</th><th>Day</th><th>日期</th><th>WBC</th><th>Hb</th><th>PLT</th><th>ANC</th><th>處置</th><th></th></tr>
+                <tr><th>次</th><th>Day</th><th>日期</th><th>WBC</th><th>Hb</th><th>PLT</th><th>ANC</th><th>IgG</th><th>處置</th><th></th></tr>
               </thead>
               <tbody>
                 <tr v-for="r in flatRecords" :key="r.id" :class="{ editing: editingId === r.id }">
@@ -213,11 +229,13 @@
                     <td>{{ fmt(r.hb) }}</td>
                     <td>{{ fmt(r.plt) }}</td>
                     <td>{{ fmt(r.anc) }}</td>
+                    <td>{{ fmt(r.igg) }}</td>
                     <td class="tx-icons">
                       <span v-if="r.wbc_shot" title="升白針">💉</span>
                       <span v-if="r.rbc_tx" title="輸血">🩸</span>
                       <span v-if="r.plt_tx" title="輸血小板">🟣</span>
-                      <span v-if="!r.wbc_shot && !r.rbc_tx && !r.plt_tx" class="muted">–</span>
+                      <span v-if="r.ivig_bottles" title="免疫球蛋白 IVIg">🧫{{ r.ivig_bottles * 5 }}g</span>
+                      <span v-if="!r.wbc_shot && !r.rbc_tx && !r.plt_tx && !r.ivig_bottles" class="muted">–</span>
                     </td>
                     <td class="row-actions">
                       <button class="mini" @click="startEdit(r)">編輯</button>
@@ -231,10 +249,12 @@
                     <td><input class="cell" type="number" step="0.1" v-model="editForm.hb" /></td>
                     <td><input class="cell" type="number" step="1" v-model="editForm.plt" /></td>
                     <td><input class="cell" type="number" step="1" v-model="editForm.anc" /></td>
+                    <td><input class="cell" type="number" step="1" v-model="editForm.igg" placeholder="留空" /></td>
                     <td class="tx-edit">
                       <label title="升白針"><input type="checkbox" v-model="editForm.wbc_shot" />💉</label>
                       <label title="輸血"><input type="checkbox" v-model="editForm.rbc_tx" />🩸</label>
                       <label title="輸血小板"><input type="checkbox" v-model="editForm.plt_tx" />🟣</label>
+                      <label title="免疫球蛋白 IVIg 瓶數">🧫<input class="cell ivig-cell" type="number" step="0.5" min="0" v-model.number="editForm.ivig_bottles" placeholder="瓶" /></label>
                     </td>
                     <td class="row-actions">
                       <button class="mini primary" @click="saveEdit">儲存</button>
@@ -286,6 +306,14 @@
                 <option v-for="u in unitOptions.anc" :key="u" :value="u">{{ u }}</option>
               </select>
             </div>
+            <div class="set-row">
+              <span class="set-label">免疫球蛋白 IgG</span>
+              <input type="number" step="1" v-model.number="settingsForm.igg_min" /> <span class="dash">–</span>
+              <input type="number" step="1" v-model.number="settingsForm.igg_max" />
+              <select class="set-unit-sel" v-model="settingsForm.igg_unit">
+                <option v-for="u in unitOptions.igg" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
             <p class="hint" style="margin-top:12px">單位只改顯示標籤，不會換算數值；請讓選的單位與你輸入的數值、設定的參考值一致。</p>
 
             <h3 style="margin:18px 0 2px">處置參考線</h3>
@@ -305,6 +333,17 @@
               <input type="number" step="0.1" v-model.number="settingsForm.plt_tx_line" />
               <span class="set-sub">PLT 低於</span>
             </div>
+
+            <h3 style="margin:18px 0 2px">圖表顯示</h3>
+            <p class="hint">「實心圓點」勾選＝曲線畫實心圓點，不勾＝只畫直線。「處置顯示文字」勾選＝處置以文字標籤呈現，不勾＝在資料點畫空心圓圈。</p>
+            <div class="disp-row" v-for="m in metrics" :key="m.key">
+              <span class="set-label">{{ m.label }}</span>
+              <label class="disp-chk"><input type="checkbox" v-model="settingsForm[m.key + '_show_points']" /> 實心圓點</label>
+              <label class="disp-chk" v-if="treatments[m.key] || ivig.chartKey === m.key">
+                <input type="checkbox" v-model="settingsForm[m.key + '_tx_as_text']" /> 處置顯示文字
+              </label>
+            </div>
+
             <div class="modal-actions">
               <button class="primary" @click="saveSettings">儲存</button>
               <button class="ghost" @click="showSettings = false">取消</button>

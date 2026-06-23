@@ -32,15 +32,29 @@ CREATE TABLE IF NOT EXISTS patients (
     plt_max     DOUBLE PRECISION DEFAULT 40,
     anc_min     DOUBLE PRECISION DEFAULT 1500,
     anc_danger  DOUBLE PRECISION DEFAULT 500,
+    igg_min     DOUBLE PRECISION DEFAULT 700,
+    igg_max     DOUBLE PRECISION DEFAULT 1600,
     -- 各項目顯示單位（僅標籤，不換算數值）
     wbc_unit    VARCHAR(16) DEFAULT '/µL',
     hb_unit     VARCHAR(16) DEFAULT 'g/dL',
     plt_unit    VARCHAR(16) DEFAULT '萬/µL',
     anc_unit    VARCHAR(16) DEFAULT '/µL',
+    igg_unit    VARCHAR(16) DEFAULT 'mg/dL',
     -- 處置參考線（低於此值常需處置；NULL = 不顯示）
     wbc_shot_line DOUBLE PRECISION,
     hb_tx_line    DOUBLE PRECISION DEFAULT 8,
     plt_tx_line   DOUBLE PRECISION DEFAULT 3.5,
+    -- 各項目圖表顯示開關（show_points 預設 true=畫實心圓點；tx_as_text 預設 false=處置畫空心圓圈）
+    wbc_show_points BOOLEAN DEFAULT true,
+    hb_show_points  BOOLEAN DEFAULT true,
+    plt_show_points BOOLEAN DEFAULT true,
+    anc_show_points BOOLEAN DEFAULT true,
+    igg_show_points BOOLEAN DEFAULT true,
+    wbc_tx_as_text  BOOLEAN DEFAULT false,
+    hb_tx_as_text   BOOLEAN DEFAULT false,
+    plt_tx_as_text  BOOLEAN DEFAULT false,
+    anc_tx_as_text  BOOLEAN DEFAULT false,
+    igg_tx_as_text  BOOLEAN DEFAULT false,
     preparer      VARCHAR(50) DEFAULT '',
     hospital      VARCHAR(80) DEFAULT ''
 );
@@ -65,9 +79,11 @@ CREATE TABLE IF NOT EXISTS lab_records (
     hb           DOUBLE PRECISION,           -- 血色素
     plt          DOUBLE PRECISION,           -- 血小板
     anc          DOUBLE PRECISION,           -- 中性球
+    igg          DOUBLE PRECISION,           -- 免疫球蛋白 IgG（允許 NULL，不一定每次驗）
     wbc_shot     BOOLEAN DEFAULT false,      -- 當天施打升白針
     rbc_tx       BOOLEAN DEFAULT false,      -- 當天輸血
     plt_tx       BOOLEAN DEFAULT false,      -- 當天輸血小板
+    ivig_bottles DOUBLE PRECISION,           -- 當天 IVIg 瓶數（一瓶 5g；NULL=未施打）
     created_at   TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
     CONSTRAINT fk_record_cycle
         FOREIGN KEY (cycle_id) REFERENCES chemo_cycles (id) ON DELETE CASCADE
@@ -103,3 +119,24 @@ CREATE INDEX IF NOT EXISTS idx_records_cycle  ON lab_records (cycle_id);
 -- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS wbc_shot BOOLEAN DEFAULT false;
 -- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS rbc_tx   BOOLEAN DEFAULT false;
 -- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS plt_tx   BOOLEAN DEFAULT false;
+
+-- ============================================================
+-- 升級用（新增「IgG 項目 + IVIg 處置 + 圖表顯示開關」時執行）：
+-- 若 Railway 既有資料庫已建好舊版表，部署本次更新後請執行下列指令補欄位。
+-- 全新部署不需要（CREATE TABLE 已含這些欄位）。
+-- ============================================================
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_min DOUBLE PRECISION DEFAULT 700;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_max DOUBLE PRECISION DEFAULT 1600;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_unit VARCHAR(16) DEFAULT 'mg/dL';
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS wbc_show_points BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS hb_show_points  BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS plt_show_points BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS anc_show_points BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_show_points BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS wbc_tx_as_text  BOOLEAN DEFAULT false;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS hb_tx_as_text   BOOLEAN DEFAULT false;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS plt_tx_as_text  BOOLEAN DEFAULT false;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS anc_tx_as_text  BOOLEAN DEFAULT false;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_tx_as_text  BOOLEAN DEFAULT false;
+-- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS igg          DOUBLE PRECISION;
+-- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS ivig_bottles DOUBLE PRECISION;

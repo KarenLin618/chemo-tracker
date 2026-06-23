@@ -44,7 +44,16 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
 .tx-check-title{width:100%;font-size:.9rem;font-weight:600;color:#374151}
 .chk{display:flex;align-items:center;gap:6px;font-size:1.05rem;cursor:pointer}
 .chk input{width:20px;height:20px}
-.mk-tx{margin-left:8px}
+.ivig-chk{flex:1 0 100%;flex-wrap:wrap}
+.ivig-input{width:70px;font:inherit;font-size:1rem;text-align:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.ivig-g{font-size:.92rem;color:#0f766e;font-weight:600}
+.mk-tx{margin-left:8px;display:inline-flex;align-items:center;gap:4px}
+.mk-tx-ring{display:inline-block;width:12px;height:12px;border-radius:50%;background:transparent;border:2.5px solid var(--muted)}
+.disp-card h3{margin:0 0 4px;font-size:1.05rem}
+.disp-row{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
+.disp-label{flex:0 0 120px;font-size:.85rem;font-weight:500}
+.disp-chk{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer}
+.disp-chk input{width:16px;height:16px}
 .tx-stats{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
 .tx-stats h3{margin:0 0 8px;font-size:.95rem}
 .tx-stats-table{width:100%;border-collapse:collapse;font-size:.9rem}
@@ -105,11 +114,13 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
       <div><label>PLT 血小板 <small>萬/µL</small></label><input class="bigval" type="number" placeholder="例 3.5"></div>
       <div><label>ANC 中性球 <small>/µL</small></label><input class="bigval" type="number" placeholder="例 1005"></div>
     </div>
+    <div class="frow"><label>IgG 免疫球蛋白 <small>mg/dL（不是每次都驗，沒驗就留空）</small></label><input type="number" placeholder="例 1050（沒驗就留空）"></div>
     <div class="tx-check">
       <span class="tx-check-title">當天處置（有才勾）</span>
       <label class="chk"><input type="checkbox"> 💉 升白針</label>
       <label class="chk"><input type="checkbox"> 🩸 輸血</label>
       <label class="chk"><input type="checkbox"> 🟣 輸血小板</label>
+      <label class="chk ivig-chk">🧫 免疫球蛋白 IVIg <input class="ivig-input" type="number" step="0.5" min="0" placeholder="瓶" id="demo-ivig"> <span class="ivig-g" id="demo-ivig-g">= 0 g</span></label>
     </div>
     <button class="bigbtn">儲存這筆</button>
   </div>
@@ -125,12 +136,18 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
     <label>Hb <input type="number" step="0.1" id="s-hb"><select id="u-sel-hb"></select></label>
     <label>PLT <input type="number" step="1" id="s-plt"><select id="u-sel-plt"></select></label>
     <label>ANC <input type="number" step="1" id="s-anc"><select id="u-sel-anc"></select></label>
+    <label>IgG <input type="number" step="10" id="s-igg"><select id="u-sel-igg"></select></label>
     <span class="t2-spacer"></span>
     <label class="tb-field">醫院 <input id="hosp" placeholder="醫院名稱"></label>
     <label class="tb-field">製表人 <input id="prep" placeholder="姓名"></label>
     <label class="tb-field">表單日期 <input type="date" id="rdate"></label>
     <button class="dl-btn" id="btn-png">⤓ 下載圖片</button>
     <button class="dl-btn" id="btn-pdf">⤓ 下載 PDF</button>
+  </div>
+  <div class="card disp-card">
+    <h3>圖表顯示</h3>
+    <p class="hint">「實心圓點」勾選＝曲線畫實心圓點，不勾＝只畫直線。「處置顯示文字」勾選＝處置以文字標籤呈現，不勾＝在資料點畫空心圓圈。（試著切換看看）</p>
+    <div id="disp-rows"></div>
   </div>
   <div id="capture">
   <div class="export-head">
@@ -147,6 +164,7 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
   <div class="card"><div class="chart-head"><h3>血色素 Hb <small id="u-hb">g/dL</small></h3><span class="ref" id="ref-hb"></span></div><canvas id="c-hb" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🩸＝當天輸血</span></p></div>
   <div class="card"><div class="chart-head"><h3>血小板 PLT <small id="u-plt">萬/µL</small></h3><span class="ref" id="ref-plt"></span></div><canvas id="c-plt" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🟣＝當天輸血小板</span></p></div>
   <div class="card"><div class="chart-head"><h3>中性球 ANC <small id="u-anc">/µL</small></h3><span class="ref" id="ref-anc"></span></div><canvas id="c-anc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點</p></div>
+  <div class="card"><div class="chart-head"><h3>免疫球蛋白 IgG <small id="u-igg">mg/dL</small></h3><span class="ref" id="ref-igg"></span></div><canvas id="c-igg" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx"><span class="mk-tx-ring"></span>圓圈＝當天 IVIg</span></p></div>
   </div>
 </div>
 <div class="foot">本工具僅供照護者紀錄與趨勢觀察，不能取代醫療判斷，用藥與處置請依醫療團隊指示。</div>
@@ -158,33 +176,42 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
 <script>
 if(window["chartjs-plugin-annotation"])Chart.register(window["chartjs-plugin-annotation"]);
 // 範例：兩個化療療程，每個療程在 Day 1/8/15/22 抽血。第2次恢復較好。
+// igg 不是每次都驗（範例只在部分天有值），ivig 為當天免疫球蛋白瓶數（一瓶 5g）
 const cycles=[
- {n:1,color:"#0d9488",rows:[{d:1,wbc:6500,hb:13.2,plt:22,anc:3500},{d:8,wbc:1800,hb:11.0,plt:9,anc:450,wbc_shot:true,plt_tx:true},{d:15,wbc:3200,hb:10.5,plt:14,anc:1300,rbc_tx:true},{d:22,wbc:5400,hb:11.8,plt:21,anc:3000}]},
- {n:2,color:"#6366f1",rows:[{d:1,wbc:7000,hb:12.8,plt:24,anc:3800},{d:8,wbc:2400,hb:11.5,plt:13,anc:900,wbc_shot:true},{d:15,wbc:4100,hb:11.2,plt:19,anc:2100},{d:22,wbc:6200,hb:12.4,plt:25,anc:3600}]},
+ {n:1,color:"#0d9488",rows:[{d:1,wbc:6500,hb:13.2,plt:22,anc:3500,igg:980},{d:8,wbc:1800,hb:11.0,plt:9,anc:450,wbc_shot:true,plt_tx:true,ivig:2},{d:15,wbc:3200,hb:10.5,plt:14,anc:1300,rbc_tx:true},{d:22,wbc:5400,hb:11.8,plt:21,anc:3000,igg:1100}]},
+ {n:2,color:"#6366f1",rows:[{d:1,wbc:7000,hb:12.8,plt:24,anc:3800,igg:1050},{d:8,wbc:2400,hb:11.5,plt:13,anc:900,wbc_shot:true,ivig:1},{d:15,wbc:4100,hb:11.2,plt:19,anc:2100},{d:22,wbc:6200,hb:12.4,plt:25,anc:3600,igg:1240}]},
 ];
 const TREATMENTS={wbc:{flag:"wbc_shot",icon:"💉",name:"升白針"},hb:{flag:"rbc_tx",icon:"🩸",name:"輸血"},plt:{flag:"plt_tx",icon:"🟣",name:"輸血小板"}};
+// IVIg 免疫球蛋白注射（非綁定單一血液項；標記畫在 IgG 圖上）
+const IVIG={field:"ivig",chartKey:"igg",gPerBottle:5,icon:"🧫",name:"免疫球蛋白"};
 const txLines={wbc:null,hb:8,plt:3.5};
 const M=[
  {k:"wbc",label:"白血球 WBC"},
  {k:"hb",label:"血色素 Hb"},
  {k:"plt",label:"血小板 PLT"},
  {k:"anc",label:"中性球 ANC",danger:true},
+ {k:"igg",label:"免疫球蛋白 IgG",optional:true},
 ];
 // 可調整的參考值（下限為主）
-const ranges={wbc:{min:4000,max:10000,danger:null},hb:{min:12,max:16,danger:null},plt:{min:15,max:40,danger:null},anc:{min:1500,max:null,danger:500}};
+const ranges={wbc:{min:4000,max:10000,danger:null},hb:{min:12,max:16,danger:null},plt:{min:15,max:40,danger:null},anc:{min:1500,max:null,danger:500},igg:{min:700,max:1600,danger:null}};
 // 單位（僅顯示標籤）
-const units={wbc:"/µL",hb:"g/dL",plt:"萬/µL",anc:"/µL"};
-const UNIT_OPTIONS={wbc:["/µL","10³/µL","萬/µL","10⁹/L"],hb:["g/dL","g/L"],plt:["萬/µL","10³/µL","/µL","10⁹/L"],anc:["/µL","10³/µL","萬/µL","10⁹/L"]};
+const units={wbc:"/µL",hb:"g/dL",plt:"萬/µL",anc:"/µL",igg:"mg/dL"};
+const UNIT_OPTIONS={wbc:["/µL","10³/µL","萬/µL","10⁹/L"],hb:["g/dL","g/L"],plt:["萬/µL","10³/µL","/µL","10⁹/L"],anc:["/µL","10³/µL","萬/µL","10⁹/L"],igg:["mg/dL","g/L","mg/mL"]};
+// 各項目圖表顯示開關（show_points=畫實心圓點；tx_as_text=處置以文字呈現，預設空心圓）
+const displayOpts={wbc:{show_points:true,tx_as_text:false},hb:{show_points:true,tx_as_text:false},plt:{show_points:true,tx_as_text:false},anc:{show_points:true,tx_as_text:false},igg:{show_points:true,tx_as_text:false}};
 const charts={};
 
-function nadir(c,k){return Math.min(...c.rows.map(r=>r[k]))}
+function vals(c,k){return c.rows.map(r=>r[k]).filter(v=>v!=null);}
+function nadir(c,k){const v=vals(c,k);return v.length?Math.min(...v):null;}
 function recovery(c,k,thr){
- const rows=[...c.rows].sort((a,b)=>a.d-b.d);let ni=0;rows.forEach((r,i)=>{if(r[k]<rows[ni][k])ni=i;});
+ const rows=[...c.rows].filter(r=>r[k]!=null).sort((a,b)=>a.d-b.d);
+ if(!rows.length)return{status:"nodata"};
+ let ni=0;rows.forEach((r,i)=>{if(r[k]<rows[ni][k])ni=i;});
  const nd=rows[ni];if(nd[k]>=thr)return{status:"nodrop"};
  for(let i=ni+1;i<rows.length;i++){if(rows[i][k]>=thr)return{status:"recovered",days:rows[i].d-nd.d};}
  return{status:"pending"};
 }
-function recLabel(rc,thr){if(rc.status==="nodrop")return"未低於參考值";if(rc.status==="pending")return`尚未回到 ${thr}`;return`${rc.days} 天`;}
+function recLabel(rc,thr){if(rc.status==="nodata")return"無資料";if(rc.status==="nodrop")return"未低於參考值";if(rc.status==="pending")return`尚未回到 ${thr}`;return`${rc.days} 天`;}
 function refText(m){const r=ranges[m.k];return m.danger?`≥${r.min}（<${r.danger} 高風險）`:`${r.min}–${r.max}`;}
 
 function render(){
@@ -197,8 +224,11 @@ function render(){
  const sum=document.getElementById("summary");sum.innerHTML="";
  M.forEach(m=>{
   const thr=ranges[m.k].min,unit=units[m.k];
-  const pre=nadir(cycles[0],m.k),cur=nadir(cycles[1],m.k),diff=cur-pre;
-  const cls=diff>0?"good":diff<0?"bad":"flat",arrow=diff>0?"▲":diff<0?"▼":"＝",word=diff>0?"進步":diff<0?"下降":"持平";
+  const pre=nadir(cycles[0],m.k),cur=nadir(cycles[1],m.k);
+  let lowTxt,cls="flat",arrow="•";
+  if(pre==null||cur==null){lowTxt=cur!=null?`${cur}（需兩個療程才能比較）`:"尚無資料";}
+  else{const diff=cur-pre;cls=diff>0?"good":diff<0?"bad":"flat";arrow=diff>0?"▲":diff<0?"▼":"＝";
+   const word=diff>0?"進步":diff<0?"下降":"持平";lowTxt=`${pre} → ${cur}（${word} ${diff>0?"+":""}${diff.toFixed(1)} ${unit}）`;}
   const rp=recovery(cycles[0],m.k,thr),rc=recovery(cycles[1],m.k,thr);
   let recTxt=`第1次 ${recLabel(rp,thr)} → 第2次 ${recLabel(rc,thr)}`,recCls="flat";
   if(rp.status==="recovered"&&rc.status==="recovered"){const d=rc.days-rp.days;
@@ -206,46 +236,52 @@ function render(){
   sum.insertAdjacentHTML("beforeend",
    `<div class="metric-pill"><div class="metric-name">${m.label}</div>
     <div class="trend-row"><span class="tlabel">最低點</span>
-      <span class="trend ${cls}"><span class="arrow">${arrow}</span>${pre} → ${cur}（${word} ${diff>0?"+":""}${diff.toFixed(1)} ${unit}）</span></div>
+      <span class="trend ${cls}"><span class="arrow">${arrow}</span>${lowTxt}</span></div>
     <div class="trend-row"><span class="tlabel">恢復天數</span>
       <span class="trend ${recCls}">${recTxt}</span></div></div>`);
  });
  // 處置統計
- const stats=cycles.map(c=>{let w=0,r=0,p=0;c.rows.forEach(x=>{if(x.wbc_shot)w++;if(x.rbc_tx)r++;if(x.plt_tx)p++;});return{n:c.n,w,r,p};});
- const anyTx=stats.some(s=>s.w||s.r||s.p);
+ const stats=cycles.map(c=>{let w=0,r=0,p=0,iv=0,ivg=0;c.rows.forEach(x=>{if(x.wbc_shot)w++;if(x.rbc_tx)r++;if(x.plt_tx)p++;if(x.ivig){iv++;ivg+=x.ivig*IVIG.gPerBottle;}});return{n:c.n,w,r,p,iv,ivg};});
+ const anyTx=stats.some(s=>s.w||s.r||s.p||s.iv);
  const txdCls=d=>d<0?"good":d>0?"bad":"flat",txdTxt=d=>d<0?"▼"+(-d):d>0?"▲"+d:"＝";
  const cell=(val,prev)=>prev===undefined?`${val} 次`:`${val} 次<span class="txd ${txdCls(val-prev)}">${txdTxt(val-prev)}</span>`;
+ const ivigCell=(s,prev)=>`${s.iv} 次${s.ivg?` <small>(${s.ivg}g)</small>`:""}${prev===undefined?"":`<span class="txd ${txdCls(s.iv-prev)}">${txdTxt(s.iv-prev)}</span>`}`;
  const ts=document.getElementById("tx-stats");
  if(anyTx){
   ts.innerHTML='<div class="tx-stats"><h3>處置統計（每個療程）</h3><table class="tx-stats-table">'+
-   '<thead><tr><th>療程</th><th>💉 升白針</th><th>🩸 輸血</th><th>🟣 輸血小板</th></tr></thead><tbody>'+
-   stats.map((s,i)=>{const pv=i>0?stats[i-1]:{};return `<tr><td>第${s.n}次</td><td>${cell(s.w,pv.w)}</td><td>${cell(s.r,pv.r)}</td><td>${cell(s.p,pv.p)}</td></tr>`;}).join('')+
+   '<thead><tr><th>療程</th><th>💉 升白針</th><th>🩸 輸血</th><th>🟣 輸血小板</th><th>🧫 IVIg</th></tr></thead><tbody>'+
+   stats.map((s,i)=>{const pv=i>0?stats[i-1]:{};return `<tr><td>第${s.n}次</td><td>${cell(s.w,pv.w)}</td><td>${cell(s.r,pv.r)}</td><td>${cell(s.p,pv.p)}</td><td>${ivigCell(s,pv.iv)}</td></tr>`;}).join('')+
    '</tbody></table><p class="recov-note">箭頭為與前一次療程相比：▼ 變少（較好）、▲ 變多。後面療程處置變少，通常代表身體耐受與恢復變好。</p></div>';
  } else { ts.innerHTML=""; }
  // 圖
  M.forEach(m=>{
   const rng=ranges[m.k],tx=TREATMENTS[m.k],ann={};
+  const opt=displayOpts[m.k]||{show_points:true,tx_as_text:false};
+  const showPoints=opt.show_points!==false,txAsText=opt.tx_as_text===true;
+  const ivigHere=IVIG.chartKey===m.k?IVIG:null;
   if(rng.min!==null){ann.band={type:"box",yMin:rng.min,yMax:rng.max??undefined,backgroundColor:"rgba(16,185,129,0.08)",borderWidth:0};
    ann.low={type:"line",yMin:rng.min,yMax:rng.min,borderColor:"rgba(16,185,129,0.5)",borderWidth:1,borderDash:[4,4]};}
   if(rng.danger!=null){ann.danger={type:"line",yMin:rng.danger,yMax:rng.danger,borderColor:"rgba(220,38,38,0.7)",borderWidth:1.5,
    label:{display:true,content:"高風險 "+rng.danger,position:"start",color:"#dc2626",backgroundColor:"rgba(255,255,255,0.85)",font:{size:10}}};}
-  // 處置標記
-  if(tx){cycles.forEach((c,i)=>{c.rows.forEach(r=>{if(r[tx.flag]&&r[m.k]!=null){
-   ann["tx_"+i+"_"+r.d]={type:"label",xValue:r.d,yValue:r[m.k],content:[tx.icon+" "+tx.name],font:{size:11,weight:"bold"},
-    color:c.color,backgroundColor:"rgba(255,255,255,0.92)",borderColor:c.color,borderWidth:1,borderRadius:6,padding:4,yAdjust:-32,
-    callout:{display:true,borderColor:c.color,borderWidth:1,margin:4}};}});});}
+  // 處置標記：txAsText=true→文字標籤；false（預設）→在資料點畫空心圓圈
+  const addMk=(id,color,day,yVal,label)=>{if(yVal==null)return;
+   ann[id]=txAsText
+    ?{type:"label",xValue:day,yValue:yVal,content:[label],font:{size:11,weight:"bold"},color,backgroundColor:"rgba(255,255,255,0.92)",borderColor:color,borderWidth:1,borderRadius:6,padding:4,yAdjust:-32,callout:{display:true,borderColor:color,borderWidth:1,margin:4}}
+    :{type:"point",xValue:day,yValue:yVal,radius:9,backgroundColor:"transparent",borderColor:color,borderWidth:2.5};};
+  if(tx){cycles.forEach((c,i)=>{c.rows.forEach(r=>{if(r[tx.flag])addMk("tx_"+i+"_"+r.d,c.color,r.d,r[m.k],tx.icon+" "+tx.name);});});}
+  if(ivigHere){cycles.forEach((c,i)=>{const fb=rng.min!=null?rng.min:(vals(c,m.k)[0]??0);c.rows.forEach(r=>{if(r[IVIG.field]){const g=r[IVIG.field]*IVIG.gPerBottle;addMk("ivig_"+i+"_"+r.d,c.color,r.d,r[m.k]!=null?r[m.k]:fb,IVIG.icon+" "+IVIG.name+" "+g+"g");}});});}
   // 處置參考線
   if(tx&&txLines[m.k]!=null){ann.txLine={type:"line",yMin:txLines[m.k],yMax:txLines[m.k],borderColor:"rgba(217,119,6,0.8)",borderWidth:1.5,borderDash:[6,3],
    label:{display:true,content:tx.name+"參考 "+txLines[m.k],position:"end",color:"#b45309",backgroundColor:"rgba(255,255,255,0.85)",font:{size:10}}};}
   if(charts[m.k])charts[m.k].destroy();
   charts[m.k]=new Chart(document.getElementById("c-"+m.k),{type:"line",
    data:{datasets:cycles.map(c=>{
-     const pts=[...c.rows].sort((a,b)=>a.d-b.d).map(r=>({x:r.d,y:r[m.k]}));
-     const ys=pts.map(p=>p.y);const ni=ys.indexOf(Math.min(...ys));
-     let ri=-1; if(rng.min!=null&&ys[ni]<rng.min){for(let k=ni+1;k<ys.length;k++){if(ys[k]>=rng.min){ri=k;break;}}}
+     const pts=[...c.rows].filter(r=>r[m.k]!=null).sort((a,b)=>a.d-b.d).map(r=>({x:r.d,y:r[m.k]}));
+     const ys=pts.map(p=>p.y);const ni=ys.length?ys.indexOf(Math.min(...ys)):-1;
+     let ri=-1; if(rng.min!=null&&ni>=0&&ys[ni]<rng.min){for(let k=ni+1;k<ys.length;k++){if(ys[k]>=rng.min){ri=k;break;}}}
      const roles=pts.map((_,k)=>k===ni?"最低點":k===ri?"恢復點":null);
-     return{label:"第"+c.n+"次",data:pts,roles,borderColor:c.color,backgroundColor:c.color,tension:.3,borderWidth:2,pointHoverRadius:7,
-      pointRadius:pts.map((_,k)=>k===ni||k===ri?7:4),
+     return{label:"第"+c.n+"次",data:pts,roles,borderColor:c.color,backgroundColor:c.color,tension:.3,borderWidth:2,spanGaps:true,pointHoverRadius:showPoints?7:0,
+      pointRadius:pts.map((_,k)=>!showPoints?0:(k===ni||k===ri?7:4)),
       pointStyle:pts.map((_,k)=>k===ri?"triangle":"circle"),
       pointBackgroundColor:pts.map((_,k)=>k===ni?"#fff":c.color),
       pointBorderColor:c.color,
@@ -260,7 +296,7 @@ function render(){
 }
 
 // 設定列：初始化輸入框並監聽
-["wbc","hb","plt","anc"].forEach(k=>{
+["wbc","hb","plt","anc","igg"].forEach(k=>{
  const el=document.getElementById("s-"+k);el.value=ranges[k].min;
  el.addEventListener("input",()=>{const v=parseFloat(el.value);if(!isNaN(v)){ranges[k].min=v;render();}});
  // 單位下拉
@@ -269,6 +305,22 @@ function render(){
  sel.value=units[k];
  sel.addEventListener("change",()=>{units[k]=sel.value;render();});
 });
+// 圖表顯示開關：每項一列（實心圓點 / 處置顯示文字）
+(function(){
+ const host=document.getElementById("disp-rows");
+ M.forEach(m=>{
+  const hasTx=!!TREATMENTS[m.k]||IVIG.chartKey===m.k;
+  const row=document.createElement("div");row.className="disp-row";
+  row.innerHTML=`<span class="disp-label">${m.label}</span>`+
+   `<label class="disp-chk"><input type="checkbox" data-k="${m.k}" data-o="show_points" ${displayOpts[m.k].show_points?"checked":""}> 實心圓點</label>`+
+   (hasTx?`<label class="disp-chk"><input type="checkbox" data-k="${m.k}" data-o="tx_as_text" ${displayOpts[m.k].tx_as_text?"checked":""}> 處置顯示文字</label>`:"");
+  host.appendChild(row);
+ });
+ host.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.k){displayOpts[t.dataset.k][t.dataset.o]=t.checked;render();}});
+})();
+// IVIg 瓶數 → 公克 即時換算（預覽）
+(function(){const iv=document.getElementById("demo-ivig"),g=document.getElementById("demo-ivig-g");
+ if(iv)iv.addEventListener("input",()=>{g.textContent="= "+((parseFloat(iv.value)||0)*5)+" g";});})();
 // 製表人 / 表單日期 / 醫院
 const rdate=document.getElementById("rdate"),prep=document.getElementById("prep"),hosp=document.getElementById("hosp");
 rdate.value=new Date().toISOString().slice(0,10);

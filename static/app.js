@@ -6,6 +6,7 @@ const METRICS = [
   { key: "hb",  label: "血色素 Hb" },
   { key: "plt", label: "血小板 PLT" },
   { key: "anc", label: "中性球 ANC", danger: true },
+  { key: "igg", label: "免疫球蛋白 IgG", optional: true },
 ];
 
 // 預設正常參考值（新病人初始值；台灣報告常見刻度，可在「參考值設定」中修改）
@@ -14,6 +15,7 @@ const DEFAULT_RANGES = {
   hb:  { min: 12,   max: 16,    danger: null },
   plt: { min: 15,   max: 40,    danger: null },
   anc: { min: 1500, max: null,  danger: 500 },
+  igg: { min: 700,  max: 1600,  danger: null },
 };
 
 // 單位下拉選項（僅顯示標籤，不換算數值）
@@ -22,8 +24,9 @@ const UNIT_OPTIONS = {
   hb:  ["g/dL", "g/L"],
   plt: ["萬/µL", "10³/µL", "/µL", "10⁹/L"],
   anc: ["/µL", "10³/µL", "萬/µL", "10⁹/L"],
+  igg: ["mg/dL", "g/L", "mg/mL"],
 };
-const DEFAULT_UNITS = { wbc: "/µL", hb: "g/dL", plt: "萬/µL", anc: "/µL" };
+const DEFAULT_UNITS = { wbc: "/µL", hb: "g/dL", plt: "萬/µL", anc: "/µL", igg: "mg/dL" };
 
 // 各項目對應的處置（圖上標記）
 const TREATMENTS = {
@@ -31,8 +34,19 @@ const TREATMENTS = {
   hb:  { flag: "rbc_tx",   icon: "🩸", name: "輸血" },
   plt: { flag: "plt_tx",   icon: "🟣", name: "輸血小板" },
 };
+// IVIg 免疫球蛋白注射（非綁定單一血液項；標記畫在 IgG 圖上）
+const IVIG = { field: "ivig_bottles", chartKey: "igg", gPerBottle: 5, icon: "🧫", name: "免疫球蛋白" };
 // 處置參考線預設（低於此值常需處置；null = 不顯示）
 const DEFAULT_TX_LINES = { wbc: null, hb: 8, plt: 3.5 };
+
+// 各項目圖表顯示開關預設（show_points=畫實心圓點；tx_as_text=處置以文字呈現）
+const DEFAULT_DISPLAY_OPTS = {
+  wbc: { show_points: true, tx_as_text: false },
+  hb:  { show_points: true, tx_as_text: false },
+  plt: { show_points: true, tx_as_text: false },
+  anc: { show_points: true, tx_as_text: false },
+  igg: { show_points: true, tx_as_text: false },
+};
 
 // 當地今天日期（YYYY-MM-DD），避免用 UTC 造成跨日誤差
 function localToday() {
@@ -66,12 +80,14 @@ createApp({
       units: Object.assign({}, DEFAULT_UNITS),
       unitOptions: UNIT_OPTIONS,
       txLines: Object.assign({}, DEFAULT_TX_LINES),
+      displayOpts: JSON.parse(JSON.stringify(DEFAULT_DISPLAY_OPTS)),
       treatments: TREATMENTS,
+      ivig: IVIG,
       charts: {},            // key -> Chart instance
       showAddPatient: false,
       newPatient: { name: "", note: "" },
       editingId: null,
-      editForm: { record_date: "", wbc: "", hb: "", plt: "", anc: "", wbc_shot: false, rbc_tx: false, plt_tx: false },
+      editForm: { record_date: "", wbc: "", hb: "", plt: "", anc: "", igg: "", wbc_shot: false, rbc_tx: false, plt_tx: false, ivig_bottles: "" },
       showSettings: false,
       settingsForm: {},
       exporting: false,
@@ -83,8 +99,8 @@ createApp({
         newCycleNumber: 1,
         cycle_start_date: "",
         record_date: localToday(),
-        wbc: "", hb: "", plt: "", anc: "",
-        wbc_shot: false, rbc_tx: false, plt_tx: false,
+        wbc: "", hb: "", plt: "", anc: "", igg: "",
+        wbc_shot: false, rbc_tx: false, plt_tx: false, ivig_bottles: "",
       },
       msg: null,
       cycleMsg: "",
@@ -123,13 +139,14 @@ createApp({
       const arr = [...this.cycles]
         .sort((a, b) => a.cycle_number - b.cycle_number)
         .map((c) => {
-          let w = 0, r = 0, p = 0;
+          let w = 0, r = 0, p = 0, ivig = 0, ivigG = 0;
           c.records.forEach((rec) => {
             if (rec.wbc_shot) w++;
             if (rec.rbc_tx) r++;
             if (rec.plt_tx) p++;
+            if (rec.ivig_bottles) { ivig++; ivigG += rec.ivig_bottles * IVIG.gPerBottle; }
           });
-          return { cycle_number: c.cycle_number, wbc_shot: w, rbc_tx: r, plt_tx: p };
+          return { cycle_number: c.cycle_number, wbc_shot: w, rbc_tx: r, plt_tx: p, ivig, ivigG };
         });
       arr.forEach((s, i) => {
         if (i === 0) { s.d = null; return; }
@@ -138,13 +155,14 @@ createApp({
           wbc_shot: s.wbc_shot - prev.wbc_shot,
           rbc_tx: s.rbc_tx - prev.rbc_tx,
           plt_tx: s.plt_tx - prev.plt_tx,
+          ivig: s.ivig - prev.ivig,
         };
       });
       return arr;
     },
     hasAnyTreatment() {
       return this.cycleTreatmentStats.some(
-        (s) => s.wbc_shot || s.rbc_tx || s.plt_tx
+        (s) => s.wbc_shot || s.rbc_tx || s.plt_tx || s.ivig
       );
     },
   },
@@ -209,6 +227,13 @@ createApp({
       if (data.patient && data.patient.txLines) {
         this.txLines = Object.assign({}, DEFAULT_TX_LINES, data.patient.txLines);
       }
+      if (data.patient && data.patient.displayOpts) {
+        const merged = JSON.parse(JSON.stringify(DEFAULT_DISPLAY_OPTS));
+        Object.keys(data.patient.displayOpts).forEach((k) => {
+          merged[k] = Object.assign({}, merged[k], data.patient.displayOpts[k]);
+        });
+        this.displayOpts = merged;
+      }
       this.preparer = (data.patient && data.patient.preparer) || "";
       this.hospital = (data.patient && data.patient.hospital) || "";
       this.syncCycleDefault();
@@ -271,8 +296,9 @@ createApp({
         cycle_start_date: cycleStart,
         record_date: this.form.record_date,
         wbc: this.form.wbc, hb: this.form.hb,
-        plt: this.form.plt, anc: this.form.anc,
+        plt: this.form.plt, anc: this.form.anc, igg: this.form.igg,
         wbc_shot: this.form.wbc_shot, rbc_tx: this.form.rbc_tx, plt_tx: this.form.plt_tx,
+        ivig_bottles: this.form.ivig_bottles,
       };
       const res = await fetch("/api/records", {
         method: "POST",
@@ -283,8 +309,9 @@ createApp({
         this.msg = { type: "ok", text: "已儲存 ✓" };
         // 新療程儲存後，下次自動停在這一次
         if (this.form.cycleSel === "new") this.form.cycleSel = cycleNumber;
-        this.form.wbc = this.form.hb = this.form.plt = this.form.anc = "";
+        this.form.wbc = this.form.hb = this.form.plt = this.form.anc = this.form.igg = "";
         this.form.wbc_shot = this.form.rbc_tx = this.form.plt_tx = false;
+        this.form.ivig_bottles = "";
         await this.loadData();
       } else {
         const e = await res.json();
@@ -334,8 +361,9 @@ createApp({
       this.editForm = {
         record_date: r.record_date,
         wbc: r.wbc ?? "", hb: r.hb ?? "",
-        plt: r.plt ?? "", anc: r.anc ?? "",
+        plt: r.plt ?? "", anc: r.anc ?? "", igg: r.igg ?? "",
         wbc_shot: !!r.wbc_shot, rbc_tx: !!r.rbc_tx, plt_tx: !!r.plt_tx,
+        ivig_bottles: r.ivig_bottles ?? "",
       };
     },
     cancelEdit() {
@@ -379,11 +407,21 @@ createApp({
         hb_min: this.ranges.hb.min, hb_max: this.ranges.hb.max,
         plt_min: this.ranges.plt.min, plt_max: this.ranges.plt.max,
         anc_min: this.ranges.anc.min, anc_danger: this.ranges.anc.danger,
+        igg_min: this.ranges.igg.min, igg_max: this.ranges.igg.max,
         wbc_unit: this.units.wbc, hb_unit: this.units.hb,
-        plt_unit: this.units.plt, anc_unit: this.units.anc,
+        plt_unit: this.units.plt, anc_unit: this.units.anc, igg_unit: this.units.igg,
         wbc_shot_line: this.txLines.wbc, hb_tx_line: this.txLines.hb, plt_tx_line: this.txLines.plt,
       };
+      this.applyDisplayOptsToForm(this.displayOpts);
       this.showSettings = true;
+    },
+    // 把每項目顯示開關攤平進 settingsForm（<key>_show_points / <key>_tx_as_text）
+    applyDisplayOptsToForm(opts) {
+      METRICS.forEach((m) => {
+        const o = opts[m.key] || DEFAULT_DISPLAY_OPTS[m.key];
+        this.settingsForm[m.key + "_show_points"] = o.show_points;
+        this.settingsForm[m.key + "_tx_as_text"] = o.tx_as_text;
+      });
     },
     resetSettings() {
       const d = DEFAULT_RANGES;
@@ -392,10 +430,12 @@ createApp({
         hb_min: d.hb.min, hb_max: d.hb.max,
         plt_min: d.plt.min, plt_max: d.plt.max,
         anc_min: d.anc.min, anc_danger: d.anc.danger,
+        igg_min: d.igg.min, igg_max: d.igg.max,
         wbc_unit: DEFAULT_UNITS.wbc, hb_unit: DEFAULT_UNITS.hb,
-        plt_unit: DEFAULT_UNITS.plt, anc_unit: DEFAULT_UNITS.anc,
+        plt_unit: DEFAULT_UNITS.plt, anc_unit: DEFAULT_UNITS.anc, igg_unit: DEFAULT_UNITS.igg,
         wbc_shot_line: DEFAULT_TX_LINES.wbc, hb_tx_line: DEFAULT_TX_LINES.hb, plt_tx_line: DEFAULT_TX_LINES.plt,
       };
+      this.applyDisplayOptsToForm(DEFAULT_DISPLAY_OPTS);
     },
     async saveSettings() {
       const res = await fetch(`/api/patients/${this.currentPatientId}/settings`, {
@@ -625,7 +665,12 @@ createApp({
       if (!el) return;
       if (this.charts[m.key]) this.charts[m.key].destroy();
       const rng = this.ranges[m.key];
-      const tx = TREATMENTS[m.key]; // 該圖對應的處置（anc 無）
+      const tx = TREATMENTS[m.key]; // 該圖對應的處置（anc/igg 無綁定）
+      const opt = this.displayOpts[m.key] || DEFAULT_DISPLAY_OPTS[m.key];
+      const showPoints = opt.show_points !== false; // 預設 true
+      const txAsText = opt.tx_as_text === true;      // 預設 false（空心圓）
+      // 這張圖要顯示哪些處置：綁定的 tx，加上畫在此圖的 IVIg
+      const ivigHere = IVIG.chartKey === m.key ? IVIG : null;
       const annotations = {};
 
       const datasets = this.cycles.map((c, i) => {
@@ -649,21 +694,47 @@ createApp({
           k === nadirIdx ? "最低點" : k === recIdx ? "恢復點" : null
         );
 
-        // 處置標記（當天有施打／輸血）
+        // 處置標記（當天有施打／輸血／IVIg）
+        // txAsText=true → 文字標籤；false（預設）→ 在資料點畫空心圓圈
+        const addTxMarker = (id, day, yVal, label) => {
+          if (yVal === null || yVal === undefined) return;
+          if (txAsText) {
+            annotations[id] = {
+              type: "label",
+              xValue: day, yValue: yVal,
+              content: [label],
+              font: { size: 11, weight: "bold" },
+              color: color,
+              backgroundColor: "rgba(255,255,255,0.92)",
+              borderColor: color, borderWidth: 1, borderRadius: 6,
+              padding: 4, yAdjust: -32,
+              callout: { display: true, borderColor: color, borderWidth: 1, margin: 4 },
+            };
+          } else {
+            annotations[id] = {
+              type: "point",
+              xValue: day, yValue: yVal,
+              radius: 9,
+              backgroundColor: "transparent",
+              borderColor: color, borderWidth: 2.5,
+            };
+          }
+        };
         if (tx) {
           c.records.forEach((r) => {
-            if (r[tx.flag] && r[m.key] !== null && r[m.key] !== undefined) {
-              annotations["tx_" + i + "_" + r.day] = {
-                type: "label",
-                xValue: r.day, yValue: r[m.key],
-                content: [tx.icon + " " + tx.name],
-                font: { size: 11, weight: "bold" },
-                color: color,
-                backgroundColor: "rgba(255,255,255,0.92)",
-                borderColor: color, borderWidth: 1, borderRadius: 6,
-                padding: 4, yAdjust: -32,
-                callout: { display: true, borderColor: color, borderWidth: 1, margin: 4 },
-              };
+            if (r[tx.flag])
+              addTxMarker("tx_" + i + "_" + r.day, r.day, r[m.key], tx.icon + " " + tx.name);
+          });
+        }
+        if (ivigHere) {
+          // IVIg 那天不一定有驗 IgG；沒驗就把標記放在參考下限附近，仍能看見當天有施打
+          const fallbackY = rng.min !== null ? rng.min : (ys.length ? Math.min(...ys) : 0);
+          c.records.forEach((r) => {
+            if (r[IVIG.field]) {
+              const g = r[IVIG.field] * IVIG.gPerBottle;
+              const yVal = r[m.key] !== null && r[m.key] !== undefined ? r[m.key] : fallbackY;
+              addTxMarker("ivig_" + i + "_" + r.day, r.day, yVal,
+                IVIG.icon + " " + IVIG.name + " " + g + "g");
             }
           });
         }
@@ -677,9 +748,10 @@ createApp({
           tension: 0.3,
           borderWidth: 2,
           spanGaps: true,
-          pointHoverRadius: 7,
+          pointHoverRadius: showPoints ? 7 : 0,
+          // show_points=false → 純直線，所有圓點半徑 0
           pointRadius: pts.map((_, k) =>
-            k === nadirIdx || k === recIdx ? 7 : 4
+            !showPoints ? 0 : k === nadirIdx || k === recIdx ? 7 : 4
           ),
           pointStyle: pts.map((_, k) => (k === recIdx ? "triangle" : "circle")),
           pointBackgroundColor: pts.map((_, k) =>
