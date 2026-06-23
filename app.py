@@ -11,9 +11,13 @@ from models import db, Patient, ChemoCycle, LabRecord
 
 
 def normalize_db_url(url: str) -> str:
-    # Railway/Heroku 舊格式 postgres:// → SQLAlchemy 需要 postgresql://
+    # Railway/Heroku 舊格式 postgres:// → postgresql://
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
+    # 明確指定使用 psycopg v3 驅動（psycopg[binary]，對 Python 3.13 支援完整）。
+    # 未帶 driver 的 postgresql:// 預設會找 psycopg2，故在此補上 +psycopg。
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
     return url
 
 
