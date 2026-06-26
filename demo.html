@@ -341,7 +341,24 @@ function updHead(){document.getElementById("eh-prep").textContent="製表人："
 
 // 匯出
 async function cap(){return await html2canvas(document.getElementById("capture"),{scale:2,backgroundColor:"#f5f7f8"});}
-document.getElementById("btn-png").onclick=async()=>{const cv=await cap();const a=document.createElement("a");a.download="血液檢驗_範例.png";a.href=cv.toDataURL("image/png");a.click();};
+function canvasToBlob(canvas,mime){return new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error("canvas 轉檔失敗")),mime));}
+function isMobileDevice(){const ua=navigator.userAgent||"";return /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);}
+// 交付：手機叫系統分享、桌機下載、手機不支援分享就開新分頁
+async function deliverBlob(blob,filename,mime){
+ const mobile=isMobileDevice();
+ if(mobile&&navigator.canShare){
+  const file=new File([blob],filename,{type:mime});
+  if(navigator.canShare({files:[file]})){
+   try{await navigator.share({files:[file],title:filename});return;}
+   catch(e){if(e&&e.name==="AbortError")return;}
+  }
+ }
+ const url=URL.createObjectURL(blob);
+ if(!mobile){const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();}
+ else{window.open(url,"_blank");alert("已在新分頁開啟，請長按圖片或用瀏覽器選單儲存。");}
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+document.getElementById("btn-png").onclick=async()=>{const cv=await cap();const blob=await canvasToBlob(cv,"image/png");await deliverBlob(blob,"血液檢驗_範例.png","image/png");};
 async function footerImg(text){
  const d=document.createElement("div");
  d.style.cssText='position:fixed;left:-9999px;top:0;font-family:"Noto Sans TC",sans-serif;font-size:22px;color:#888;white-space:nowrap;padding:2px 6px;';
@@ -361,7 +378,7 @@ document.getElementById("btn-pdf").onclick=async()=>{
   const f=await footerImg(`第 ${p+1} 頁，共 ${total} 頁`),fw=46,fh=f.height*fw/f.width;
   pdf.addImage(f.toDataURL("image/png"),"PNG",(pw-fw)/2,ph-fh-4,fw,fh);
  }
- pdf.save("血液檢驗_範例.pdf");
+ await deliverBlob(pdf.output("blob"),"血液檢驗_範例.pdf","application/pdf");
 };
 
 render();

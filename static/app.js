@@ -504,14 +504,61 @@ createApp({
       const d = this.reportDate || new Date().toISOString().slice(0, 10);
       return `血液檢驗_${this.currentPatientName || "病人"}_${d}`;
     },
+    // canvas → Blob（比 toDataURL 省記憶體，手機較不易失敗）
+    canvasToBlob(canvas, mime) {
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("canvas 轉檔失敗"))),
+          mime
+        );
+      });
+    },
+    // 是否為行動裝置（手機/平板）。桌機即使支援 Web Share 仍走直接下載。
+    isMobileDevice() {
+      const ua = navigator.userAgent || "";
+      return (
+        /Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(ua) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) // iPadOS 偽裝成 Mac
+      );
+    },
+    // 交付檔案：手機叫系統「分享」、桌機直接下載、手機不支援分享就開新分頁長按存檔
+    async deliverBlob(blob, filename, mime) {
+      const mobile = this.isMobileDevice();
+      // 1) 行動裝置且支援檔案分享：Web Share（可存圖片/存檔/傳 LINE/AirDrop/列印）
+      if (mobile && navigator.canShare) {
+        const file = new File([blob], filename, { type: mime });
+        if (navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({ files: [file], title: filename });
+            return; // 分享完成或使用者取消都算結束
+          } catch (e) {
+            if (e && e.name === "AbortError") return; // 使用者取消，不視為錯誤
+            // 其他錯誤 → 往下退回
+          }
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      if (!mobile) {
+        // 2) 桌機：直接下載（維持原行為）
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        // 3) 行動裝置但無法分享：開新分頁，使用者可長按圖片儲存
+        window.open(url, "_blank");
+        alert("已在新分頁開啟，請長按圖片或用瀏覽器選單儲存。");
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    },
     async exportImage() {
       this.exporting = true;
       try {
         const canvas = await this.captureCanvas();
-        const link = document.createElement("a");
-        link.download = this.fileStem() + ".png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
+        const blob = await this.canvasToBlob(canvas, "image/png");
+        await this.deliverBlob(blob, this.fileStem() + ".png", "image/png");
       } catch (e) {
         alert("匯出圖片失敗：" + e.message);
       } finally {
@@ -565,7 +612,8 @@ createApp({
           const fh = (footer.height * fw) / footer.width;
           pdf.addImage(footer.toDataURL("image/png"), "PNG", (pw - fw) / 2, ph - fh - 4, fw, fh);
         }
-        pdf.save(this.fileStem() + ".pdf");
+        const blob = pdf.output("blob");
+        await this.deliverBlob(blob, this.fileStem() + ".pdf", "application/pdf");
       } catch (e) {
         alert("匯出 PDF 失敗：" + e.message);
       } finally {
