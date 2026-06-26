@@ -18,6 +18,10 @@
         <div>
           <h1>化療血液檢驗追蹤</h1>
           <p>逐次化療對照，看見恢復的軌跡</p>
+          <p class="brand-links">
+            <a href="/guide" target="_blank" rel="noopener">📖 操作說明</a>
+            <a href="/demo" target="_blank" rel="noopener">🔍 範例預覽</a>
+          </p>
         </div>
       </div>
       <div class="patient-picker">
@@ -37,6 +41,8 @@
     </div>
 
     <main class="layout">
+      <!-- 左欄：輸入表單 + 化療週期開始日（垂直堆疊） -->
+      <div class="left-col">
       <!-- 左：輸入表單 -->
       <section class="card form-card">
         <h2>輸入檢驗報告</h2>
@@ -72,7 +78,7 @@
         <div class="grid2">
           <div>
             <label>WBC 白血球 <small>{{ units.wbc }}</small></label>
-            <input type="number" step="0.01" v-model="form.wbc" placeholder="例 6.5" />
+            <input type="number" step="0.01" v-model="form.wbc" placeholder="例 1500" />
           </div>
           <div>
             <label>Hb 血色素 <small>{{ units.hb }}</small></label>
@@ -121,6 +127,7 @@
         </div>
         <p v-if="cycleMsg" class="msg ok">{{ cycleMsg }}</p>
       </section>
+      </div><!-- /left-col -->
 
       <!-- 右：圖表 + 比對 -->
       <section class="charts">
@@ -129,8 +136,8 @@
         </div>
 
         <template v-else>
-          <div class="toolbar">
-            <button class="ghost" @click="openSettings">⚙ 參考值設定</button>
+          <div class="toolbar card">
+            <button class="settings-btn" @click="openSettings">⚙ 參考值設定</button>
             <label class="tb-field">醫院 <input v-model="hospital" placeholder="醫院名稱" @blur="saveHeaderInfo" /></label>
             <label class="tb-field">製表人 <input v-model="preparer" placeholder="姓名" @blur="saveHeaderInfo" /></label>
             <label class="tb-field">表單日期 <input type="date" v-model="reportDate" /></label>
@@ -334,11 +341,20 @@
               <span class="set-sub">PLT 低於</span>
             </div>
 
+            <h3 style="margin:18px 0 2px">圖表 Y 軸範圍</h3>
+            <p class="hint">設定每張圖縱軸的上下限，留空＝自動。化療期間數值常達不到正常值，縮小範圍（例 WBC 0–4000）可讓曲線填滿圖面、看出起伏。</p>
+            <div class="set-row" v-for="m in metrics" :key="'axis-' + m.key">
+              <span class="set-label">{{ m.label }}</span>
+              <input type="number" v-model.number="settingsForm[m.key + '_axis_min']" placeholder="自動" /> <span class="dash">–</span>
+              <input type="number" v-model.number="settingsForm[m.key + '_axis_max']" placeholder="自動" />
+            </div>
+
             <h3 style="margin:18px 0 2px">圖表顯示</h3>
-            <p class="hint">「實心圓點」勾選＝曲線畫實心圓點，不勾＝只畫直線。「處置顯示文字」勾選＝處置以文字標籤呈現，不勾＝在資料點畫空心圓圈。</p>
+            <p class="hint">「實心圓點」勾選＝曲線畫實心圓點，不勾＝只畫直線。「處置顯示文字」勾選＝處置以文字標籤呈現，不勾＝在資料點畫空心圓圈。「顯示綠帶」勾選＝畫正常區間綠帶。</p>
             <div class="disp-row" v-for="m in metrics" :key="m.key">
               <span class="set-label">{{ m.label }}</span>
               <label class="disp-chk"><input type="checkbox" v-model="settingsForm[m.key + '_show_points']" /> 實心圓點</label>
+              <label class="disp-chk"><input type="checkbox" v-model="settingsForm[m.key + '_show_band']" /> 顯示綠帶</label>
               <label class="disp-chk" v-if="treatments[m.key] || ivig.chartKey === m.key">
                 <input type="checkbox" v-model="settingsForm[m.key + '_tx_as_text']" /> 處置顯示文字
               </label>

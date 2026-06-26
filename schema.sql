@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS patients (
     anc_danger  DOUBLE PRECISION DEFAULT 500,
     igg_min     DOUBLE PRECISION DEFAULT 700,
     igg_max     DOUBLE PRECISION DEFAULT 1600,
+    -- 圖表 Y 軸顯示範圍（每項可各自設定；NULL = 自動縮放）
+    wbc_axis_min DOUBLE PRECISION, wbc_axis_max DOUBLE PRECISION,
+    hb_axis_min  DOUBLE PRECISION, hb_axis_max  DOUBLE PRECISION,
+    plt_axis_min DOUBLE PRECISION, plt_axis_max DOUBLE PRECISION,
+    anc_axis_min DOUBLE PRECISION, anc_axis_max DOUBLE PRECISION,
+    igg_axis_min DOUBLE PRECISION, igg_axis_max DOUBLE PRECISION,
     -- 各項目顯示單位（僅標籤，不換算數值）
     wbc_unit    VARCHAR(16) DEFAULT '/µL',
     hb_unit     VARCHAR(16) DEFAULT 'g/dL',
@@ -55,6 +61,12 @@ CREATE TABLE IF NOT EXISTS patients (
     plt_tx_as_text  BOOLEAN DEFAULT false,
     anc_tx_as_text  BOOLEAN DEFAULT false,
     igg_tx_as_text  BOOLEAN DEFAULT false,
+    -- 各項目「顯示正常區間綠帶」開關（預設 true）
+    wbc_show_band BOOLEAN DEFAULT true,
+    hb_show_band  BOOLEAN DEFAULT true,
+    plt_show_band BOOLEAN DEFAULT true,
+    anc_show_band BOOLEAN DEFAULT true,
+    igg_show_band BOOLEAN DEFAULT true,
     preparer      VARCHAR(50) DEFAULT '',
     hospital      VARCHAR(80) DEFAULT ''
 );
@@ -140,3 +152,23 @@ CREATE INDEX IF NOT EXISTS idx_records_cycle  ON lab_records (cycle_id);
 -- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_tx_as_text  BOOLEAN DEFAULT false;
 -- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS igg          DOUBLE PRECISION;
 -- ALTER TABLE lab_records ADD COLUMN IF NOT EXISTS ivig_bottles DOUBLE PRECISION;
+
+-- ============================================================
+-- 升級用（新增「每張圖 Y 軸範圍 + 顯示綠帶開關」時執行）：
+-- 正常情況下程式啟動會「自動補欄位」，不需手動跑；此處留作備援/參考。
+-- ============================================================
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS wbc_axis_min DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS wbc_axis_max DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS hb_axis_min  DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS hb_axis_max  DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS plt_axis_min DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS plt_axis_max DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS anc_axis_min DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS anc_axis_max DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_axis_min DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_axis_max DOUBLE PRECISION;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS wbc_show_band BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS hb_show_band  BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS plt_show_band BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS anc_show_band BOOLEAN DEFAULT true;
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS igg_show_band BOOLEAN DEFAULT true;

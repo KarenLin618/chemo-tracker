@@ -36,6 +36,12 @@ body {
 .brand { display: flex; align-items: center; gap: 14px; }
 .brand h1 { font-size: 1.25rem; margin: 0; font-weight: 900; letter-spacing: -.01em; }
 .brand p { margin: 0; font-size: .82rem; color: var(--muted); }
+.brand-links { margin-top: 4px !important; display: flex; gap: 14px; flex-wrap: wrap; }
+.brand-links a {
+  font-size: .82rem; font-weight: 600; color: var(--teal-dark);
+  text-decoration: none; border-bottom: 1px solid transparent;
+}
+.brand-links a:hover { border-bottom-color: var(--teal); }
 .pulse {
   width: 12px; height: 12px; border-radius: 50%;
   background: var(--teal);
@@ -84,16 +90,20 @@ button:active { transform: translateY(1px); }
 /* IgG 整行輸入欄 */
 .igg-label { display: block; }
 /* IVIg 處置：含瓶數數字欄 */
-.ivig-chk { flex: 1 0 100%; flex-wrap: wrap; }
-.ivig-input { width: 70px; height: auto; padding: 6px 8px; font-size: 1rem; text-align: center; }
-.ivig-g { font-size: .92rem; color: var(--teal-dark); font-weight: 600; }
+.ivig-chk { flex: 1 0 100%; flex-wrap: wrap; gap: 8px; }
+/* 用 .form-card 前綴提高優先序，蓋過 .form-card input 的大內距，確保看得到輸入的瓶數 */
+.form-card .ivig-input {
+  width: 110px; height: auto; padding: 10px 12px;
+  font-size: 1.3rem; font-weight: 700; text-align: center;
+}
+.ivig-g { font-size: 1rem; color: var(--teal-dark); font-weight: 700; }
 .tx-icons { white-space: nowrap; font-size: 1rem; }
 .tx-icons .muted { color: var(--muted); }
 .tx-icons span + span { margin-left: 6px; }
 .tx-edit { display: flex; gap: 6px; white-space: nowrap; flex-wrap: wrap; }
 .tx-edit label { display: inline-flex; align-items: center; gap: 2px; font-size: .95rem; cursor: pointer; }
 .tx-edit input[type="checkbox"] { width: 16px; height: 16px; }
-.tx-edit .ivig-cell { width: 50px; }
+.tx-edit .ivig-cell { width: 66px; text-align: center; }
 .mk-tx { margin-left: 8px; display: inline-flex; align-items: center; gap: 4px; }
 .mk-tx-ring {
   display: inline-block; width: 12px; height: 12px; border-radius: 50%;
@@ -106,6 +116,8 @@ button:active { transform: translateY(1px); }
   gap: 20px; padding: 22px; align-items: start;
 }
 @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+/* 左欄：輸入表單 + 化療週期開始日 垂直堆疊 */
+.left-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 
 .card {
   background: var(--card); border: 1px solid var(--line);
@@ -243,8 +255,16 @@ tr.editing { background: #f0fdfa; }
 .foot { text-align: center; color: var(--muted); font-size: .78rem; padding: 20px; }
 
 /* ---- Toolbar ---- */
-.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.toolbar.card { padding: 14px 16px; }
 .tb-spacer { flex: 1; }
+/* 參考值設定按鈕：填滿底色更明顯 */
+.settings-btn {
+  background: var(--teal); color: #fff; border: none;
+  font-weight: 700; padding: 10px 18px; font-size: 1rem;
+  box-shadow: 0 1px 2px rgba(13,148,136,.3);
+}
+.settings-btn:hover { background: var(--teal-dark); }
 
 /* ---- Capture / export ---- */
 .capture-area { display: flex; flex-direction: column; gap: 20px; background: var(--bg); }

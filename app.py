@@ -6,8 +6,36 @@ Railway 上會自動帶入 PostgreSQL 的 DATABASE_URL。
 import os
 from datetime import date
 
-from flask import Flask, jsonify, request, render_template, abort
+from flask import Flask, jsonify, request, render_template, abort, send_from_directory
+from sqlalchemy import inspect, text
 from models import db, Patient, ChemoCycle, LabRecord
+
+
+def auto_add_missing_columns():
+    """部署自我修復：比對 model 與實際資料表，補上缺少的欄位。
+    免去每次新增欄位都要手動跑 ALTER TABLE。新增的欄位皆為 nullable、不帶
+    server default，跨 PostgreSQL / SQLite 皆可；既有列以 NULL 表示，由各
+    getter（axis_bounds / display_opts）解讀為預設值。"""
+    insp = inspect(db.engine)
+    dialect = db.engine.dialect
+    existing_tables = set(insp.get_table_names())
+    for table in (Patient.__table__, ChemoCycle.__table__, LabRecord.__table__):
+        if table.name not in existing_tables:
+            continue  # 整張表不存在則由 create_all 處理
+        have = {c["name"] for c in insp.get_columns(table.name)}
+        for col in table.columns:
+            if col.name in have:
+                continue
+            try:
+                coltype = col.type.compile(dialect=dialect)
+                db.session.execute(
+                    text(f'ALTER TABLE {table.name} ADD COLUMN {col.name} {coltype}')
+                )
+                db.session.commit()
+                print(f"[auto-migrate] added column {table.name}.{col.name} ({coltype})")
+            except Exception as e:  # noqa: BLE001  補欄位失敗不影響啟動
+                db.session.rollback()
+                print(f"[auto-migrate] skip {table.name}.{col.name}: {e}")
 
 
 def normalize_db_url(url: str) -> str:
@@ -44,6 +72,7 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        auto_add_missing_columns()
 
     register_routes(app)
     return app
@@ -71,6 +100,16 @@ def register_routes(app):
     @app.route("/healthz")
     def healthz():
         return {"status": "ok"}
+
+    @app.route("/guide")
+    def guide():
+        """操作說明（專案根目錄的靜態 HTML）。"""
+        return send_from_directory(app.root_path, "操作說明.html")
+
+    @app.route("/demo")
+    def demo():
+        """離線範例預覽。"""
+        return send_from_directory(app.root_path, "demo.html")
 
     # ---------- 病人 ----------
     @app.get("/api/patients")
@@ -144,9 +183,16 @@ def register_routes(app):
         if "plt_tx_line" in data:
             p.plt_tx_line = to_float(data.get("plt_tx_line"))
 
+        # 圖表 Y 軸範圍（允許清空 = null = 自動）
+        for key in ("wbc", "hb", "plt", "anc", "igg"):
+            for bound in ("axis_min", "axis_max"):
+                field = f"{key}_{bound}"
+                if field in data:
+                    setattr(p, field, to_float(data.get(field)))
+
         # 各項目圖表顯示開關（布林，逐欄寫入）
         for key in ("wbc", "hb", "plt", "anc", "igg"):
-            for opt in ("show_points", "tx_as_text"):
+            for opt in ("show_points", "tx_as_text", "show_band"):
                 field = f"{key}_{opt}"
                 if field in data:
                     setattr(p, field, bool(data.get(field)))

@@ -25,6 +25,18 @@ class Patient(db.Model):
     igg_min = db.Column(db.Float, default=700)      # 免疫球蛋白 IgG 下限
     igg_max = db.Column(db.Float, default=1600)     # 免疫球蛋白 IgG 上限
 
+    # 圖表 Y 軸顯示範圍（每項可各自設定；NULL = 自動縮放）
+    wbc_axis_min = db.Column(db.Float)
+    wbc_axis_max = db.Column(db.Float)
+    hb_axis_min = db.Column(db.Float)
+    hb_axis_max = db.Column(db.Float)
+    plt_axis_min = db.Column(db.Float)
+    plt_axis_max = db.Column(db.Float)
+    anc_axis_min = db.Column(db.Float)
+    anc_axis_max = db.Column(db.Float)
+    igg_axis_min = db.Column(db.Float)
+    igg_axis_max = db.Column(db.Float)
+
     # 各項目顯示單位（僅標籤，不換算數值）
     wbc_unit = db.Column(db.String(16), default="/µL")
     hb_unit = db.Column(db.String(16), default="g/dL")
@@ -50,6 +62,12 @@ class Patient(db.Model):
     plt_tx_as_text = db.Column(db.Boolean, default=False)
     anc_tx_as_text = db.Column(db.Boolean, default=False)
     igg_tx_as_text = db.Column(db.Boolean, default=False)
+    # *_show_band：勾選=顯示正常區間綠帶與下限綠虛線，不勾=不畫（預設 True）
+    wbc_show_band = db.Column(db.Boolean, default=True)
+    hb_show_band = db.Column(db.Boolean, default=True)
+    plt_show_band = db.Column(db.Boolean, default=True)
+    anc_show_band = db.Column(db.Boolean, default=True)
+    igg_show_band = db.Column(db.Boolean, default=True)
 
     preparer = db.Column(db.String(50), default="")  # 製表人（匯出檔頭用，記住上次）
     hospital = db.Column(db.String(80), default="")  # 醫院名稱（記住上次，可不同病人不同院）
@@ -90,12 +108,23 @@ class Patient(db.Model):
         """每個項目的圖表顯示開關。None（舊資料未設）視為預設值。"""
         sp = lambda v: True if v is None else bool(v)   # show_points 預設 True
         tx = lambda v: False if v is None else bool(v)  # tx_as_text 預設 False
+        bd = lambda v: True if v is None else bool(v)   # show_band 預設 True
         return {
-            "wbc": {"show_points": sp(self.wbc_show_points), "tx_as_text": tx(self.wbc_tx_as_text)},
-            "hb":  {"show_points": sp(self.hb_show_points),  "tx_as_text": tx(self.hb_tx_as_text)},
-            "plt": {"show_points": sp(self.plt_show_points), "tx_as_text": tx(self.plt_tx_as_text)},
-            "anc": {"show_points": sp(self.anc_show_points), "tx_as_text": tx(self.anc_tx_as_text)},
-            "igg": {"show_points": sp(self.igg_show_points), "tx_as_text": tx(self.igg_tx_as_text)},
+            "wbc": {"show_points": sp(self.wbc_show_points), "tx_as_text": tx(self.wbc_tx_as_text), "show_band": bd(self.wbc_show_band)},
+            "hb":  {"show_points": sp(self.hb_show_points),  "tx_as_text": tx(self.hb_tx_as_text),  "show_band": bd(self.hb_show_band)},
+            "plt": {"show_points": sp(self.plt_show_points), "tx_as_text": tx(self.plt_tx_as_text), "show_band": bd(self.plt_show_band)},
+            "anc": {"show_points": sp(self.anc_show_points), "tx_as_text": tx(self.anc_tx_as_text), "show_band": bd(self.anc_show_band)},
+            "igg": {"show_points": sp(self.igg_show_points), "tx_as_text": tx(self.igg_tx_as_text), "show_band": bd(self.igg_show_band)},
+        }
+
+    def axis_bounds(self):
+        """每個項目的圖表 Y 軸顯示範圍（NULL = 自動縮放）。"""
+        return {
+            "wbc": {"min": self.wbc_axis_min, "max": self.wbc_axis_max},
+            "hb":  {"min": self.hb_axis_min,  "max": self.hb_axis_max},
+            "plt": {"min": self.plt_axis_min, "max": self.plt_axis_max},
+            "anc": {"min": self.anc_axis_min, "max": self.anc_axis_max},
+            "igg": {"min": self.igg_axis_min, "max": self.igg_axis_max},
         }
 
     def to_dict(self):
@@ -105,6 +134,7 @@ class Patient(db.Model):
             "ranges": self.ranges(), "units": self.units(),
             "txLines": self.tx_lines(),
             "displayOpts": self.display_opts(),
+            "axisBounds": self.axis_bounds(),
             "preparer": self.preparer or "",
             "hospital": self.hospital or "",
         }

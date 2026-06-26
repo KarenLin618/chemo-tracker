@@ -54,6 +54,7 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
 .disp-label{flex:0 0 120px;font-size:.85rem;font-weight:500}
 .disp-chk{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer}
 .disp-chk input{width:16px;height:16px}
+.disp-chk input.axis-in{width:64px;height:auto;padding:4px 6px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:.8rem}
 .tx-stats{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
 .tx-stats h3{margin:0 0 8px;font-size:.95rem}
 .tx-stats-table{width:100%;border-collapse:collapse;font-size:.9rem}
@@ -197,8 +198,10 @@ const ranges={wbc:{min:4000,max:10000,danger:null},hb:{min:12,max:16,danger:null
 // 單位（僅顯示標籤）
 const units={wbc:"/µL",hb:"g/dL",plt:"萬/µL",anc:"/µL",igg:"mg/dL"};
 const UNIT_OPTIONS={wbc:["/µL","10³/µL","萬/µL","10⁹/L"],hb:["g/dL","g/L"],plt:["萬/µL","10³/µL","/µL","10⁹/L"],anc:["/µL","10³/µL","萬/µL","10⁹/L"],igg:["mg/dL","g/L","mg/mL"]};
-// 各項目圖表顯示開關（show_points=畫實心圓點；tx_as_text=處置以文字呈現，預設空心圓）
-const displayOpts={wbc:{show_points:true,tx_as_text:false},hb:{show_points:true,tx_as_text:false},plt:{show_points:true,tx_as_text:false},anc:{show_points:true,tx_as_text:false},igg:{show_points:true,tx_as_text:false}};
+// 各項目圖表顯示開關（show_points=畫實心圓點；tx_as_text=處置以文字呈現；show_band=顯示正常綠帶）
+const displayOpts={wbc:{show_points:true,tx_as_text:false,show_band:true},hb:{show_points:true,tx_as_text:false,show_band:true},plt:{show_points:true,tx_as_text:false,show_band:true},anc:{show_points:true,tx_as_text:false,show_band:true},igg:{show_points:true,tx_as_text:false,show_band:true}};
+// 各項目圖表 Y 軸範圍（null = 自動）
+const axisBounds={wbc:{min:null,max:null},hb:{min:null,max:null},plt:{min:null,max:null},anc:{min:null,max:null},igg:{min:null,max:null}};
 const charts={};
 
 function vals(c,k){return c.rows.map(r=>r[k]).filter(v=>v!=null);}
@@ -256,10 +259,11 @@ function render(){
  // 圖
  M.forEach(m=>{
   const rng=ranges[m.k],tx=TREATMENTS[m.k],ann={};
-  const opt=displayOpts[m.k]||{show_points:true,tx_as_text:false};
+  const opt=displayOpts[m.k]||{show_points:true,tx_as_text:false,show_band:true};
   const showPoints=opt.show_points!==false,txAsText=opt.tx_as_text===true;
+  const ab=axisBounds[m.k]||{min:null,max:null};
   const ivigHere=IVIG.chartKey===m.k?IVIG:null;
-  if(rng.min!==null){ann.band={type:"box",yMin:rng.min,yMax:rng.max??undefined,backgroundColor:"rgba(16,185,129,0.08)",borderWidth:0};
+  if(rng.min!==null&&opt.show_band!==false){ann.band={type:"box",yMin:rng.min,yMax:rng.max??undefined,backgroundColor:"rgba(16,185,129,0.08)",borderWidth:0};
    ann.low={type:"line",yMin:rng.min,yMax:rng.min,borderColor:"rgba(16,185,129,0.5)",borderWidth:1,borderDash:[4,4]};}
   if(rng.danger!=null){ann.danger={type:"line",yMin:rng.danger,yMax:rng.danger,borderColor:"rgba(220,38,38,0.7)",borderWidth:1.5,
    label:{display:true,content:"高風險 "+rng.danger,position:"start",color:"#dc2626",backgroundColor:"rgba(255,255,255,0.85)",font:{size:10}}};}
@@ -288,7 +292,7 @@ function render(){
       pointBorderWidth:pts.map((_,k)=>k===ni||k===ri?2.5:1)};
    })},
    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:26}},interaction:{mode:"nearest",intersect:false},
-    scales:{x:{type:"linear",min:1,title:{display:true,text:"化療第 N 天（Day）"},ticks:{stepSize:7,callback:v=>"D"+v}},y:{title:{display:true,text:units[m.k]}}},
+    scales:{x:{type:"linear",min:1,title:{display:true,text:"化療第 N 天（Day）"},ticks:{stepSize:7,callback:v=>"D"+v}},y:{min:ab.min!=null&&ab.min!==""?Number(ab.min):undefined,max:ab.max!=null&&ab.max!==""?Number(ab.max):undefined,title:{display:true,text:units[m.k]}}},
     plugins:{legend:{position:"bottom",labels:{boxWidth:14,font:{size:11}}},annotation:{annotations:ann},
      tooltip:{callbacks:{title:i=>"化療第 "+i[0].parsed.x+" 天",label:it=>it.dataset.label+"： "+it.parsed.y+" "+units[m.k],
       afterLabel:it=>{const r=it.dataset.roles&&it.dataset.roles[it.dataIndex];return r?"◆ "+r:"";}}}}}});
@@ -305,7 +309,7 @@ function render(){
  sel.value=units[k];
  sel.addEventListener("change",()=>{units[k]=sel.value;render();});
 });
-// 圖表顯示開關：每項一列（實心圓點 / 處置顯示文字）
+// 圖表顯示開關：每項一列（實心圓點 / 顯示綠帶 / 處置顯示文字 / Y 軸範圍）
 (function(){
  const host=document.getElementById("disp-rows");
  M.forEach(m=>{
@@ -313,10 +317,15 @@ function render(){
   const row=document.createElement("div");row.className="disp-row";
   row.innerHTML=`<span class="disp-label">${m.label}</span>`+
    `<label class="disp-chk"><input type="checkbox" data-k="${m.k}" data-o="show_points" ${displayOpts[m.k].show_points?"checked":""}> 實心圓點</label>`+
-   (hasTx?`<label class="disp-chk"><input type="checkbox" data-k="${m.k}" data-o="tx_as_text" ${displayOpts[m.k].tx_as_text?"checked":""}> 處置顯示文字</label>`:"");
+   `<label class="disp-chk"><input type="checkbox" data-k="${m.k}" data-o="show_band" ${displayOpts[m.k].show_band?"checked":""}> 顯示綠帶</label>`+
+   (hasTx?`<label class="disp-chk"><input type="checkbox" data-k="${m.k}" data-o="tx_as_text" ${displayOpts[m.k].tx_as_text?"checked":""}> 處置顯示文字</label>`:"")+
+   `<label class="disp-chk">Y軸 <input type="number" class="axis-in" data-ka="${m.k}" data-ob="min" placeholder="自動"> – <input type="number" class="axis-in" data-ka="${m.k}" data-ob="max" placeholder="自動"></label>`;
   host.appendChild(row);
  });
- host.addEventListener("change",e=>{const t=e.target;if(t.dataset&&t.dataset.k){displayOpts[t.dataset.k][t.dataset.o]=t.checked;render();}});
+ host.addEventListener("change",e=>{const t=e.target;
+  if(t.dataset&&t.dataset.k){displayOpts[t.dataset.k][t.dataset.o]=t.checked;render();}
+  if(t.dataset&&t.dataset.ka){const v=t.value===""?null:parseFloat(t.value);axisBounds[t.dataset.ka][t.dataset.ob]=isNaN(v)?null:v;render();}
+ });
 })();
 // IVIg 瓶數 → 公克 即時換算（預覽）
 (function(){const iv=document.getElementById("demo-ivig"),g=document.getElementById("demo-ivig-g");
