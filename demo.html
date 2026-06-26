@@ -48,7 +48,7 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
 .ivig-input{width:70px;font:inherit;font-size:1rem;text-align:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
 .ivig-g{font-size:.92rem;color:#0f766e;font-weight:600}
 .mk-tx{margin-left:8px;display:inline-flex;align-items:center;gap:4px}
-.mk-tx-ring{display:inline-block;width:12px;height:12px;border-radius:50%;background:transparent;border:2.5px solid var(--muted)}
+.mk-tx-ring{display:inline-block;width:12px;height:12px;border-radius:50%;background:transparent;border:2px dashed var(--muted)}
 .disp-card h3{margin:0 0 4px;font-size:1.05rem}
 .disp-row{display:flex;align-items:center;gap:14px;margin-top:10px;flex-wrap:wrap}
 .disp-label{flex:0 0 120px;font-size:.85rem;font-weight:500}
@@ -90,7 +90,7 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
 .chart-head .ref{font-size:.76rem;color:var(--muted)}canvas{max-height:240px}
 .marker-legend{margin:6px 0 2px;font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .mk-nadir,.mk-rec{display:inline-block;margin-left:8px}
-.mk-nadir{width:11px;height:11px;border-radius:50%;background:#fff;border:2.5px solid var(--muted)}
+.mk-nadir{width:12px;height:12px;border-radius:50%;background:var(--muted);border:2px solid #fff;box-shadow:0 0 0 1px var(--muted)}
 .mk-rec{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid var(--muted)}
 .foot{text-align:center;color:var(--muted);font-size:.78rem;padding:8px 20px 28px}
 </style>
@@ -161,11 +161,11 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
     <div class="summary-grid" id="summary"></div>
     <div id="tx-stats"></div>
   </div>
-  <div class="card"><div class="chart-head"><h3>白血球 WBC <small id="u-wbc">/µL</small></h3><span class="ref" id="ref-wbc"></span></div><canvas id="c-wbc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">💉＝當天升白針</span></p></div>
-  <div class="card"><div class="chart-head"><h3>血色素 Hb <small id="u-hb">g/dL</small></h3><span class="ref" id="ref-hb"></span></div><canvas id="c-hb" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🩸＝當天輸血</span></p></div>
-  <div class="card"><div class="chart-head"><h3>血小板 PLT <small id="u-plt">萬/µL</small></h3><span class="ref" id="ref-plt"></span></div><canvas id="c-plt" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🟣＝當天輸血小板</span></p></div>
-  <div class="card"><div class="chart-head"><h3>中性球 ANC <small id="u-anc">/µL</small></h3><span class="ref" id="ref-anc"></span></div><canvas id="c-anc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點</p></div>
-  <div class="card"><div class="chart-head"><h3>免疫球蛋白 IgG <small id="u-igg">mg/dL</small></h3><span class="ref" id="ref-igg"></span></div><canvas id="c-igg" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>空心圈＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx"><span class="mk-tx-ring"></span>圓圈＝當天 IVIg</span></p></div>
+  <div class="card"><div class="chart-head"><h3>白血球 WBC <small id="u-wbc">/µL</small></h3><span class="ref" id="ref-wbc"></span></div><canvas id="c-wbc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">💉＝當天升白針</span></p></div>
+  <div class="card"><div class="chart-head"><h3>血色素 Hb <small id="u-hb">g/dL</small></h3><span class="ref" id="ref-hb"></span></div><canvas id="c-hb" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🩸＝當天輸血</span></p></div>
+  <div class="card"><div class="chart-head"><h3>血小板 PLT <small id="u-plt">萬/µL</small></h3><span class="ref" id="ref-plt"></span></div><canvas id="c-plt" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🟣＝當天輸血小板</span></p></div>
+  <div class="card"><div class="chart-head"><h3>中性球 ANC <small id="u-anc">/µL</small></h3><span class="ref" id="ref-anc"></span></div><canvas id="c-anc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點</p></div>
+  <div class="card"><div class="chart-head"><h3>免疫球蛋白 IgG <small id="u-igg">mg/dL</small></h3><span class="ref" id="ref-igg"></span></div><canvas id="c-igg" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx"><span class="mk-tx-ring"></span>圓圈＝當天 IVIg</span></p></div>
   </div>
 </div>
 <div class="foot">本工具僅供照護者紀錄與趨勢觀察，不能取代醫療判斷，用藥與處置請依醫療團隊指示。</div>
@@ -271,7 +271,7 @@ function render(){
   const addMk=(id,color,day,yVal,label)=>{if(yVal==null)return;
    ann[id]=txAsText
     ?{type:"label",xValue:day,yValue:yVal,content:[label],font:{size:11,weight:"bold"},color,backgroundColor:"rgba(255,255,255,0.92)",borderColor:color,borderWidth:1,borderRadius:6,padding:4,yAdjust:-32,callout:{display:true,borderColor:color,borderWidth:1,margin:4}}
-    :{type:"point",xValue:day,yValue:yVal,radius:9,backgroundColor:"transparent",borderColor:color,borderWidth:2.5};};
+    :{type:"point",xValue:day,yValue:yVal,radius:9,backgroundColor:"transparent",borderColor:color,borderWidth:2.5,borderDash:[3,3]};};
   if(tx){cycles.forEach((c,i)=>{c.rows.forEach(r=>{if(r[tx.flag])addMk("tx_"+i+"_"+r.d,c.color,r.d,r[m.k],tx.icon+" "+tx.name);});});}
   if(ivigHere){cycles.forEach((c,i)=>{const fb=rng.min!=null?rng.min:(vals(c,m.k)[0]??0);c.rows.forEach(r=>{if(r[IVIG.field]){const g=r[IVIG.field]*IVIG.gPerBottle;addMk("ivig_"+i+"_"+r.d,c.color,r.d,r[m.k]!=null?r[m.k]:fb,IVIG.icon+" "+IVIG.name+" "+g+"g");}});});}
   // 處置參考線
@@ -281,15 +281,15 @@ function render(){
   charts[m.k]=new Chart(document.getElementById("c-"+m.k),{type:"line",
    data:{datasets:cycles.map(c=>{
      const pts=[...c.rows].filter(r=>r[m.k]!=null).sort((a,b)=>a.d-b.d).map(r=>({x:r.d,y:r[m.k]}));
-     const ys=pts.map(p=>p.y);const ni=ys.length?ys.indexOf(Math.min(...ys)):-1;
+     const ys=pts.map(p=>p.y);const ni=ys.length>=2?ys.indexOf(Math.min(...ys)):-1;
      let ri=-1; if(rng.min!=null&&ni>=0&&ys[ni]<rng.min){for(let k=ni+1;k<ys.length;k++){if(ys[k]>=rng.min){ri=k;break;}}}
      const roles=pts.map((_,k)=>k===ni?"最低點":k===ri?"恢復點":null);
      return{label:"第"+c.n+"次",data:pts,roles,borderColor:c.color,backgroundColor:c.color,tension:.3,borderWidth:2,spanGaps:true,pointHoverRadius:showPoints?7:0,
       pointRadius:pts.map((_,k)=>!showPoints?0:(k===ni||k===ri?7:4)),
       pointStyle:pts.map((_,k)=>k===ri?"triangle":"circle"),
-      pointBackgroundColor:pts.map((_,k)=>k===ni?"#fff":c.color),
-      pointBorderColor:c.color,
-      pointBorderWidth:pts.map((_,k)=>k===ni||k===ri?2.5:1)};
+      pointBackgroundColor:c.color,
+      pointBorderColor:pts.map((_,k)=>k===ni?"#fff":c.color),
+      pointBorderWidth:pts.map((_,k)=>k===ni?3:(k===ri?2.5:1))};
    })},
    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:26}},interaction:{mode:"nearest",intersect:false},
     scales:{x:{type:"linear",min:1,title:{display:true,text:"化療第 N 天（Day）"},ticks:{stepSize:7,callback:v=>"D"+v}},y:{min:ab.min!=null&&ab.min!==""?Number(ab.min):undefined,max:ab.max!=null&&ab.max!==""?Number(ab.max):undefined,title:{display:true,text:units[m.k]}}},

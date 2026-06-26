@@ -207,7 +207,7 @@
             <canvas :id="'chart-' + m.key" height="150"></canvas>
             <p class="marker-legend">
               <template v-if="displayOpts[m.key].show_points">
-                <span class="mk-nadir"></span>空心圈＝最低點
+                <span class="mk-nadir"></span>實心點＝最低點
                 <span class="mk-rec"></span>三角＝恢復點（回到參考下限）
               </template>
               <span v-else>此項以直線顯示（未開圓點）</span>

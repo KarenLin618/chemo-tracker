@@ -710,8 +710,8 @@ createApp({
           .map((r) => ({ x: r.day, y: r[m.key] }));
         const ys = pts.map((p) => p.y);
 
-        // 最低點 index
-        let nadirIdx = ys.length ? ys.indexOf(Math.min(...ys)) : -1;
+        // 最低點 index（需至少 2 個點才有「最低點」意義；單一點視為一般資料點）
+        let nadirIdx = ys.length >= 2 ? ys.indexOf(Math.min(...ys)) : -1;
         // 恢復點 index：最低點之後第一個回到參考下限的點（且確實曾低於下限）
         let recIdx = -1;
         if (rng.min !== null && nadirIdx >= 0 && ys[nadirIdx] < rng.min) {
@@ -740,12 +740,13 @@ createApp({
               callout: { display: true, borderColor: color, borderWidth: 1, margin: 4 },
             };
           } else {
+            // 處置標記用「虛線空心圈」，與實線的「最低點空心圈」區隔，避免混淆
             annotations[id] = {
               type: "point",
               xValue: day, yValue: yVal,
               radius: 9,
               backgroundColor: "transparent",
-              borderColor: color, borderWidth: 2.5,
+              borderColor: color, borderWidth: 2.5, borderDash: [3, 3],
             };
           }
         };
@@ -783,12 +784,13 @@ createApp({
             !showPoints ? 0 : k === nadirIdx || k === recIdx ? 7 : 4
           ),
           pointStyle: pts.map((_, k) => (k === recIdx ? "triangle" : "circle")),
-          pointBackgroundColor: pts.map((_, k) =>
+          // 檢驗值一律「實心圓」（與處置的空心圈清楚區隔）；最低點以較大實心點＋白邊強調
+          pointBackgroundColor: color,
+          pointBorderColor: pts.map((_, k) =>
             k === nadirIdx ? "#ffffff" : color
           ),
-          pointBorderColor: color,
           pointBorderWidth: pts.map((_, k) =>
-            k === nadirIdx || k === recIdx ? 2.5 : 1
+            k === nadirIdx ? 3 : k === recIdx ? 2.5 : 1
           ),
         };
       });
