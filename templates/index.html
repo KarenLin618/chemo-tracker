@@ -216,6 +216,10 @@
                 <template v-else>標籤＝</template>
                 當天<template v-if="treatments[m.key]">{{ treatments[m.key].name }}</template><template v-if="ivig.chartKey === m.key">{{ treatments[m.key] ? '／' : '' }}IVIg</template>
               </span>
+              <span v-if="treatments[m.key] || ivig.chartKey === m.key" class="mk-tx">
+                <template v-if="!displayOpts[m.key].tx_as_text"><span class="mk-tx-diamond"></span>圖底菱形＝有處置但當天未驗血</template>
+                <template v-else>標籤含「（未驗血）」＝有處置但當天未驗血</template>
+              </span>
             </p>
           </div>
 

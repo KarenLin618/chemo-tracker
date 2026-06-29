@@ -754,6 +754,19 @@ createApp({
       const ivigHere = IVIG.chartKey === m.key ? IVIG : null;
       const annotations = {};
 
+      // 「沒抽血當天的處置」要畫在哪個高度（baseY，固定一排在圖底）。
+      // 必須用「全圖所有療程」的層級計算，各療程底部才會排齊；且保證落在
+      // 目前 Y 軸可視範圍內（手動下限＝可視下緣；自動範圍下緣必 ≤ 資料最小值）。
+      const allYs = this.cycles.flatMap((c) =>
+        c.records
+          .filter((r) => r[m.key] !== null && r[m.key] !== undefined)
+          .map((r) => r[m.key])
+      );
+      const hasManualMin = ab.min != null && ab.min !== "";
+      const baseY = hasManualMin
+        ? Number(ab.min)
+        : (allYs.length ? Math.min(...allYs) : 0);
+
       const datasets = this.cycles.map((c, i) => {
         const color = CYCLE_COLORS[i % CYCLE_COLORS.length];
         const pts = c.records
@@ -775,15 +788,15 @@ createApp({
           k === nadirIdx ? "最低點" : k === recIdx ? "恢復點" : null
         );
 
-        // 處置標記（當天有施打／輸血／IVIg）
-        // txAsText=true → 文字標籤；false（預設）→ 在資料點畫空心圓圈
-        const addTxMarker = (id, day, yVal, label) => {
+        // 處置標記。noBlood=true 代表當天沒驗該項目（沒抽血），標記改畫在圖底 baseY。
+        // txAsText=true → 文字標籤；false（預設）→ 圓圈（有抽血＝虛線空心圈；沒抽血＝實心菱形）
+        const addTxMarker = (id, day, yVal, label, noBlood) => {
           if (yVal === null || yVal === undefined) return;
           if (txAsText) {
             annotations[id] = {
               type: "label",
               xValue: day, yValue: yVal,
-              content: [label],
+              content: noBlood ? [label, "（未驗血）"] : [label],
               font: { size: 11, weight: "bold" },
               color: color,
               backgroundColor: "rgba(255,255,255,0.92)",
@@ -791,8 +804,16 @@ createApp({
               padding: 4, yAdjust: -32,
               callout: { display: true, borderColor: color, borderWidth: 1, margin: 4 },
             };
+          } else if (noBlood) {
+            // 沒抽血：圖底事件圖示——實心菱形，與「有抽血」的虛線空心圈清楚區隔
+            annotations[id] = {
+              type: "point",
+              xValue: day, yValue: yVal,
+              pointStyle: "rectRot", radius: 7,
+              backgroundColor: color, borderColor: "#ffffff", borderWidth: 1.5,
+            };
           } else {
-            // 處置標記用「虛線空心圈」，與實線的「最低點空心圈」區隔，避免混淆
+            // 有抽血＋處置：虛線空心圈，與實線的「最低點空心圈」區隔，避免混淆
             annotations[id] = {
               type: "point",
               xValue: day, yValue: yVal,
@@ -802,24 +823,23 @@ createApp({
             };
           }
         };
-        // 沒抽血（該項目當天無數值）時，把處置標記放在參考下限附近，仍能看見當天有處置
-        const fallbackY = rng.min !== null ? rng.min : (ys.length ? Math.min(...ys) : 0);
         if (tx) {
           c.records.forEach((r) => {
             if (r[tx.flag]) {
-              const yVal = r[m.key] !== null && r[m.key] !== undefined ? r[m.key] : fallbackY;
-              addTxMarker("tx_" + i + "_" + r.day, r.day, yVal, tx.icon + " " + tx.name);
+              const noBlood = r[m.key] === null || r[m.key] === undefined;
+              addTxMarker("tx_" + i + "_" + r.day, r.day,
+                noBlood ? baseY : r[m.key], tx.icon + " " + tx.name, noBlood);
             }
           });
         }
         if (ivigHere) {
-          // IVIg 那天不一定有驗 IgG；沒驗就把標記放在參考下限附近，仍能看見當天有施打
+          // IVIg 那天不一定有驗 IgG；沒驗就把標記放在圖底，仍能看見當天有施打
           c.records.forEach((r) => {
             if (r[IVIG.field]) {
               const g = r[IVIG.field] * IVIG.gPerBottle;
-              const yVal = r[m.key] !== null && r[m.key] !== undefined ? r[m.key] : fallbackY;
-              addTxMarker("ivig_" + i + "_" + r.day, r.day, yVal,
-                IVIG.icon + " " + IVIG.name + " " + g + "g");
+              const noBlood = r[m.key] === null || r[m.key] === undefined;
+              addTxMarker("ivig_" + i + "_" + r.day, r.day,
+                noBlood ? baseY : r[m.key], IVIG.icon + " " + IVIG.name + " " + g + "g", noBlood);
             }
           });
         }

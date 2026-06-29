@@ -109,6 +109,10 @@ button:active { transform: translateY(1px); }
   display: inline-block; width: 12px; height: 12px; border-radius: 50%;
   background: transparent; border: 2px dashed var(--muted);
 }
+.mk-tx-diamond {
+  display: inline-block; width: 10px; height: 10px; transform: rotate(45deg);
+  background: var(--muted); border: 1.5px solid #fff;
+}
 
 /* ---- Layout ---- */
 .layout {

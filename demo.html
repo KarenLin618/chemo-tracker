@@ -161,11 +161,11 @@ h1{font-size:1.25rem;margin:0;font-weight:900}.topbar p{margin:0;font-size:.82re
     <div class="summary-grid" id="summary"></div>
     <div id="tx-stats"></div>
   </div>
-  <div class="card"><div class="chart-head"><h3>白血球 WBC <small id="u-wbc">/µL</small></h3><span class="ref" id="ref-wbc"></span></div><canvas id="c-wbc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">💉＝當天升白針</span></p></div>
-  <div class="card"><div class="chart-head"><h3>血色素 Hb <small id="u-hb">g/dL</small></h3><span class="ref" id="ref-hb"></span></div><canvas id="c-hb" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🩸＝當天輸血</span></p></div>
-  <div class="card"><div class="chart-head"><h3>血小板 PLT <small id="u-plt">萬/µL</small></h3><span class="ref" id="ref-plt"></span></div><canvas id="c-plt" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🟣＝當天輸血小板</span></p></div>
+  <div class="card"><div class="chart-head"><h3>白血球 WBC <small id="u-wbc">/µL</small></h3><span class="ref" id="ref-wbc"></span></div><canvas id="c-wbc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">💉＝當天升白針（◆圖底＝未驗血）</span></p></div>
+  <div class="card"><div class="chart-head"><h3>血色素 Hb <small id="u-hb">g/dL</small></h3><span class="ref" id="ref-hb"></span></div><canvas id="c-hb" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🩸＝當天輸血（◆圖底＝未驗血）</span></p></div>
+  <div class="card"><div class="chart-head"><h3>血小板 PLT <small id="u-plt">萬/µL</small></h3><span class="ref" id="ref-plt"></span></div><canvas id="c-plt" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx">🟣＝當天輸血小板（◆圖底＝未驗血）</span></p></div>
   <div class="card"><div class="chart-head"><h3>中性球 ANC <small id="u-anc">/µL</small></h3><span class="ref" id="ref-anc"></span></div><canvas id="c-anc" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點</p></div>
-  <div class="card"><div class="chart-head"><h3>免疫球蛋白 IgG <small id="u-igg">mg/dL</small></h3><span class="ref" id="ref-igg"></span></div><canvas id="c-igg" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx"><span class="mk-tx-ring"></span>圓圈＝當天 IVIg</span></p></div>
+  <div class="card"><div class="chart-head"><h3>免疫球蛋白 IgG <small id="u-igg">mg/dL</small></h3><span class="ref" id="ref-igg"></span></div><canvas id="c-igg" height="150"></canvas><p class="marker-legend"><span class="mk-nadir"></span>實心點＝最低點<span class="mk-rec"></span>三角＝恢復點<span class="mk-tx"><span class="mk-tx-ring"></span>圓圈＝當天 IVIg（◆圖底＝未驗血）</span></p></div>
   </div>
 </div>
 <div class="foot">本工具僅供照護者紀錄與趨勢觀察，不能取代醫療判斷，用藥與處置請依醫療團隊指示。</div>
@@ -267,14 +267,19 @@ function render(){
    ann.low={type:"line",yMin:rng.min,yMax:rng.min,borderColor:"rgba(16,185,129,0.5)",borderWidth:1,borderDash:[4,4]};}
   if(rng.danger!=null){ann.danger={type:"line",yMin:rng.danger,yMax:rng.danger,borderColor:"rgba(220,38,38,0.7)",borderWidth:1.5,
    label:{display:true,content:"高風險 "+rng.danger,position:"start",color:"#dc2626",backgroundColor:"rgba(255,255,255,0.85)",font:{size:10}}};}
-  // 處置標記：txAsText=true→文字標籤；false（預設）→在資料點畫空心圓圈
-  const addMk=(id,color,day,yVal,label)=>{if(yVal==null)return;
+  // 處置標記。noBlood=true 代表當天沒驗該項目（沒抽血），改畫在圖底 baseY。
+  // txAsText=true→文字標籤；false（預設）→圓圈（有抽血＝虛線空心圈；沒抽血＝實心菱形）
+  const addMk=(id,color,day,yVal,label,noBlood)=>{if(yVal==null)return;
    ann[id]=txAsText
-    ?{type:"label",xValue:day,yValue:yVal,content:[label],font:{size:11,weight:"bold"},color,backgroundColor:"rgba(255,255,255,0.92)",borderColor:color,borderWidth:1,borderRadius:6,padding:4,yAdjust:-32,callout:{display:true,borderColor:color,borderWidth:1,margin:4}}
-    :{type:"point",xValue:day,yValue:yVal,radius:9,backgroundColor:"transparent",borderColor:color,borderWidth:2.5,borderDash:[3,3]};};
-  // 沒抽血（該項目當天無數值）時，把處置標記放在參考下限附近，仍能看見當天有處置
-  if(tx){cycles.forEach((c,i)=>{const fb=rng.min!=null?rng.min:(vals(c,m.k)[0]??0);c.rows.forEach(r=>{if(r[tx.flag])addMk("tx_"+i+"_"+r.d,c.color,r.d,r[m.k]!=null?r[m.k]:fb,tx.icon+" "+tx.name);});});}
-  if(ivigHere){cycles.forEach((c,i)=>{const fb=rng.min!=null?rng.min:(vals(c,m.k)[0]??0);c.rows.forEach(r=>{if(r[IVIG.field]){const g=r[IVIG.field]*IVIG.gPerBottle;addMk("ivig_"+i+"_"+r.d,c.color,r.d,r[m.k]!=null?r[m.k]:fb,IVIG.icon+" "+IVIG.name+" "+g+"g");}});});}
+    ?{type:"label",xValue:day,yValue:yVal,content:noBlood?[label,"（未驗血）"]:[label],font:{size:11,weight:"bold"},color,backgroundColor:"rgba(255,255,255,0.92)",borderColor:color,borderWidth:1,borderRadius:6,padding:4,yAdjust:-32,callout:{display:true,borderColor:color,borderWidth:1,margin:4}}
+    :noBlood
+     ?{type:"point",xValue:day,yValue:yVal,pointStyle:"rectRot",radius:7,backgroundColor:color,borderColor:"#fff",borderWidth:1.5}
+     :{type:"point",xValue:day,yValue:yVal,radius:9,backgroundColor:"transparent",borderColor:color,borderWidth:2.5,borderDash:[3,3]};};
+  // 沒抽血當天的處置畫在圖底 baseY（全圖層級，各療程底部排齊、保證在可視範圍內）
+  const allYs=cycles.flatMap(c=>vals(c,m.k));
+  const baseY=(ab.min!=null&&ab.min!=="")?Number(ab.min):(allYs.length?Math.min(...allYs):0);
+  if(tx){cycles.forEach((c,i)=>{c.rows.forEach(r=>{if(r[tx.flag]){const nb=r[m.k]==null;addMk("tx_"+i+"_"+r.d,c.color,r.d,nb?baseY:r[m.k],tx.icon+" "+tx.name,nb);}});});}
+  if(ivigHere){cycles.forEach((c,i)=>{c.rows.forEach(r=>{if(r[IVIG.field]){const g=r[IVIG.field]*IVIG.gPerBottle;const nb=r[m.k]==null;addMk("ivig_"+i+"_"+r.d,c.color,r.d,nb?baseY:r[m.k],IVIG.icon+" "+IVIG.name+" "+g+"g",nb);}});});}
   // 處置參考線
   if(tx&&txLines[m.k]!=null){ann.txLine={type:"line",yMin:txLines[m.k],yMax:txLines[m.k],borderColor:"rgba(217,119,6,0.8)",borderWidth:1.5,borderDash:[6,3],
    label:{display:true,content:tx.name+"參考 "+txLines[m.k],position:"end",color:"#b45309",backgroundColor:"rgba(255,255,255,0.85)",font:{size:10}}};}
