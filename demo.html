@@ -272,7 +272,8 @@ function render(){
    ann[id]=txAsText
     ?{type:"label",xValue:day,yValue:yVal,content:[label],font:{size:11,weight:"bold"},color,backgroundColor:"rgba(255,255,255,0.92)",borderColor:color,borderWidth:1,borderRadius:6,padding:4,yAdjust:-32,callout:{display:true,borderColor:color,borderWidth:1,margin:4}}
     :{type:"point",xValue:day,yValue:yVal,radius:9,backgroundColor:"transparent",borderColor:color,borderWidth:2.5,borderDash:[3,3]};};
-  if(tx){cycles.forEach((c,i)=>{c.rows.forEach(r=>{if(r[tx.flag])addMk("tx_"+i+"_"+r.d,c.color,r.d,r[m.k],tx.icon+" "+tx.name);});});}
+  // 沒抽血（該項目當天無數值）時，把處置標記放在參考下限附近，仍能看見當天有處置
+  if(tx){cycles.forEach((c,i)=>{const fb=rng.min!=null?rng.min:(vals(c,m.k)[0]??0);c.rows.forEach(r=>{if(r[tx.flag])addMk("tx_"+i+"_"+r.d,c.color,r.d,r[m.k]!=null?r[m.k]:fb,tx.icon+" "+tx.name);});});}
   if(ivigHere){cycles.forEach((c,i)=>{const fb=rng.min!=null?rng.min:(vals(c,m.k)[0]??0);c.rows.forEach(r=>{if(r[IVIG.field]){const g=r[IVIG.field]*IVIG.gPerBottle;addMk("ivig_"+i+"_"+r.d,c.color,r.d,r[m.k]!=null?r[m.k]:fb,IVIG.icon+" "+IVIG.name+" "+g+"g");}});});}
   // 處置參考線
   if(tx&&txLines[m.k]!=null){ann.txLine={type:"line",yMin:txLines[m.k],yMax:txLines[m.k],borderColor:"rgba(217,119,6,0.8)",borderWidth:1.5,borderDash:[6,3],

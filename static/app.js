@@ -802,15 +802,18 @@ createApp({
             };
           }
         };
+        // 沒抽血（該項目當天無數值）時，把處置標記放在參考下限附近，仍能看見當天有處置
+        const fallbackY = rng.min !== null ? rng.min : (ys.length ? Math.min(...ys) : 0);
         if (tx) {
           c.records.forEach((r) => {
-            if (r[tx.flag])
-              addTxMarker("tx_" + i + "_" + r.day, r.day, r[m.key], tx.icon + " " + tx.name);
+            if (r[tx.flag]) {
+              const yVal = r[m.key] !== null && r[m.key] !== undefined ? r[m.key] : fallbackY;
+              addTxMarker("tx_" + i + "_" + r.day, r.day, yVal, tx.icon + " " + tx.name);
+            }
           });
         }
         if (ivigHere) {
           // IVIg 那天不一定有驗 IgG；沒驗就把標記放在參考下限附近，仍能看見當天有施打
-          const fallbackY = rng.min !== null ? rng.min : (ys.length ? Math.min(...ys) : 0);
           c.records.forEach((r) => {
             if (r[IVIG.field]) {
               const g = r[IVIG.field] * IVIG.gPerBottle;
