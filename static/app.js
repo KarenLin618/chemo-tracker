@@ -601,11 +601,15 @@ createApp({
           const sc = document.createElement("canvas");
           sc.width = canvas.width;
           sc.height = sh;
-          sc.getContext("2d").drawImage(
-            canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh
-          );
+          const sctx = sc.getContext("2d");
+          // JPEG 不支援透明，先鋪白底再貼圖（避免透明處變黑）
+          sctx.fillStyle = "#f5f7f8";
+          sctx.fillRect(0, 0, sc.width, sh);
+          sctx.drawImage(canvas, 0, sy, canvas.width, sh, 0, 0, canvas.width, sh);
           const sliceHmm = sh / pxPerMm;
-          pdf.addImage(sc.toDataURL("image/png"), "PNG", margin, margin, imgWmm, sliceHmm);
+          // 用 JPEG（品質 0.85）大幅縮小檔案：PNG 約 45MB → JPEG 約 2–3MB，
+          // 手機分享/開啟才不會因檔案過大而失敗（Chrome 空白頁）
+          pdf.addImage(sc.toDataURL("image/jpeg", 0.85), "JPEG", margin, margin, imgWmm, sliceHmm);
           // 中文頁碼頁尾
           const footer = await this.footerImage(`第 ${p + 1} 頁，共 ${totalPages} 頁`);
           const fw = 46;
